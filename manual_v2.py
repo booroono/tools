@@ -97,8 +97,9 @@ layout_AD_control = [
 
 layout_Serial = [[sg.Text('Port:   ', font=('Helvetica', 24)),
                   sg.InputCombo(com, size=(38, 1), font=('Helvetica', 24), key='port'),
-                  sg.Button('Connect', font=('Helvetica', 18), size=(8, 1), button_color='blue'),
-                  sg.Button('Disconnect', font=('Helvetica', 18), size=(10, 1), button_color='red')],
+                  sg.RButton('Reload', font=('Helvetica', 18), size=(8, 1)),
+                  sg.Button('Connect', font=('Helvetica', 18), size=(8, 1), button_color='blue'),],
+                  # sg.Button('Disconnect', font=('Helvetica', 18), size=(10, 1), button_color='red')],
                  [sg.Multiline('', key='message', size=(74, 15), font=('Helvetica', 24), autoscroll=True, focus=True)]]
 
 layout = [
@@ -156,6 +157,12 @@ def readData():
 
             # text += ser.read().decode('cp1252')
 
+def _get_serial_ports():
+    ports = []
+    for port, desc, hwid in sorted(serial.tools.list_ports.comports()):
+        ports.append(port)
+    return ports
+
 
 window = sg.Window("Manual", layout, margins=(2, 2), finalize=True)
 
@@ -171,8 +178,13 @@ while True:
     if event == sg.WINDOW_CLOSED:
         break
 
+    elif event == 'Reload':
+        window['port'].update(_get_serial_ports())
+
     elif event == 'Connect':
-        ser.port = values.get('port').device
+        print(values['port'])
+        # ser.port = values.get('port').device
+        ser.port = values['port']
         ser.baudrate = 115200
         ser.stopbits = 1
         ser.bytesize = 8
