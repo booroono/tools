@@ -141,15 +141,19 @@ def readData():
             if not (parsed_value := sss.parse_packet(received_packet)):
                 continue
 
-            if type(parsed_value) is int:
-                value = parsed_value
-            else:
-                value, data_type = parsed_value
+            cmd, *datas = parsed_value
+
+            if len(datas) == 2:
+                data_type, value = datas
                 if data_type:
                     ad_type = RESISTANCE
                 else:
                     ad_type = VOLTAGE
+            else:
+                value = datas[0]
+
             ad_value_input(value)
+
             # text += ser.read().decode('cp1252')
 
 
@@ -191,7 +195,7 @@ while True:
             sg.popup_auto_close('Failed')
 
     elif event == 'all_off_button':
-        all_off_cmd = sss.make_send_packet(CMD_ALL_OFF, b'')
+        all_off_cmd = sss.make_send_packet(CMD_ALL_OFF)
         ser.write(all_off_cmd)
 
     elif event == 'Send_Contact':
@@ -200,12 +204,14 @@ while True:
         Vol_Out_ = window.Element('Voltage_Out_input').Get()
         ETC_X_Con = window.Element('ETC_X_Control_input').Get()
         ETC_Y_Con = window.Element('ETC_Y_Control_input').Get()
-        data = struct.pack('B', int(get_con_P)) + \
-               struct.pack('B', int(get_con_N)) + \
-               struct.pack('B', int(Vol_Out_)) + \
-               struct.pack('B', int(ETC_X_Con)) + \
-               struct.pack('B', int(ETC_Y_Con))
-        contact_values = sss.make_send_packet(CMD_CONTACT_CONTROL, data)
+        contact_values = sss.make_send_packet(
+            CMD_CONTACT_CONTROL,
+            int(get_con_P),
+            int(get_con_N),
+            int(Vol_Out_),
+            int(ETC_X_Con),
+            int(ETC_Y_Con)
+        )
         ser.write(contact_values)
 
     elif event == 'Ref_1_On':
@@ -257,8 +263,11 @@ while True:
         sol_value = window.Element(event).metadata
         # print(sol_value, SOL_VALUE[event])
         on_off_value = 1 if sol_value else 0
-        data = struct.pack('2B', on_off_value, SOL_VALUE[event])
-        send_packet = sss.make_send_packet(CMD_SOL_VALVE_CONTROL, data)
+        send_packet = sss.make_send_packet(
+            CMD_SOL_VALVE_CONTROL,
+            on_off_value,
+            SOL_VALUE[event]
+        )
         ser.write(send_packet)
 
     elif event in AD_READ.keys():
