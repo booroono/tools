@@ -10,8 +10,6 @@ sg.theme('DefaultNoMoreNagging')
 ser = Serial()
 
 com = list(serial.tools.list_ports.comports())
-mode = "1", "2", "3", "4", "5"
-
 
 def _get_serial_ports():
     ports = []
@@ -22,18 +20,19 @@ def _get_serial_ports():
 
 def main_window():
     port_layout = [[sg.Text('Port:   ', font=('Helvetica', 24)),
-                    sg.InputCombo(com, size=(30, 1), font=('Helvetica', 24), key='serial_load'),
+                    sg.InputCombo([], size=(30, 1), font=('Helvetica', 24), key='serial_load'),
                     sg.RButton('Reload', size=(10, 1), font=('Helvetica', 24)),
-                    sg.RButton('Connect', size=(10, 1), font=('Helvetica', 24))]]
+                    sg.RButton('Connect', size=(10, 1), font=('Helvetica', 24)),
+                    sg.Exit(size=(10, 1), font=('Helvetica', 24))]]
 
-    mode_layout = [[sg.Text('Mode: ', font=('Helvetica', 24)),
-                    sg.InputCombo(mode, size=(30, 1), font=('Helvetica', 24)),
+    mode_layout = [[sg.RButton('RESET', size=(10, 1), font=('Helvetica', 24)),
                     sg.RButton('Buzzer off', size=(10, 1), font=('Helvetica', 24)),
-                    sg.RButton('Result view', size=(10, 1), font=('Helvetica', 24))]]
+                    sg.RButton('FAIL \n PASS', size=(10, 2), font=('Helvetica', 24)),
+                    sg.RButton('LEFT', size=(10, 1), font=('Helvetica', 24)),
+                    sg.RButton('RIGHT', size=(10, 1), font=('Helvetica', 24)),
+                    sg.RButton('Config', size=(10, 1), font=('Helvetica', 24))]]
 
-    items_layout = [[sg.Button('RESET', font=('Helvetica', 24), size=(12, 1), key='reset')],
-                    [sg.Button('JIG DOWN', font=('Helvetica', 24), size=(12, 1), key='jig')],
-                    [sg.Button('CON o/s', font=('Helvetica', 24), size=(12, 1), key='con')],
+    items_layout = [[sg.Button('CON o/s', font=('Helvetica', 24), size=(12, 1), key='con')],
                     [sg.Button('POGO o/s', font=('Helvetica', 24), size=(12, 1), key='pogo')],
                     [sg.Button('LED', font=('Helvetica', 24), size=(12, 1), key='led')],
                     [sg.Button('HALL SENSOR', font=('Helvetica', 24), size=(12, 1), key='hall')],
@@ -43,47 +42,44 @@ def main_window():
                     [sg.Button('PROX', font=('Helvetica', 24), size=(12, 1), key='prox')],
                     [sg.Button('MIC', font=('Helvetica', 24), size=(12, 1), key='mic')]]
 
-    log_layout = [[sg.Text('RESULT', font=('Helvetica', 24), size=(38, 1), justification='center')],
-                  [sg.Text('PASS', font=('Helvetica', 80), size=(12, 1), justification='center', relief=sg.RELIEF_RIDGE,
+    log_layout = [[sg.Text('PASS', font=('Helvetica', 80), size=(12, 1), justification='center', relief=sg.RELIEF_RIDGE,
                            key='result')],
                   [sg.Multiline('', key='message', size=(38, 15), font=('Helvetica', 24), autoscroll=True, focus=True)]]
 
     layout = [[sg.Frame('', port_layout)],
               [sg.Frame('', mode_layout)],
-              [sg.Frame('', items_layout), sg.Frame('', log_layout)]]
+              [sg.Frame('', items_layout), sg.Frame('', log_layout)],
+              [sg.Button('STOP', font=('Helvetica', 32), button_color='red', size=(51, 1), key='stop_inspection')]]
     return sg.Window('종합검사기', layout, finalize=True)
 
 
 def result_window():
-    headings = ['', 'LOW<=', 'VALUE', '<=HIGH', 'RESULT']
-    header = [[sg.Text('  ')] + [sg.Text(h, size=(14, 1)) for h in headings]]
+    conn_tab = [[sg.Text('Connector Open Short')], [sg.Input(key='-conn-')]]
+    pogo_tab = [[sg.Text('POGO Open Short')], [sg.Input(key='-pogo-')]]
+    led_tab = [[sg.Text('LED')], [sg.Input(key='-led-')]]
+    hall_tab = [[sg.Text('Hall Sensor')], [sg.Input(key='-hall-')]]
+    vbat_tab = [[sg.Text('VBAT ID')], [sg.Input(key='-vbat-')]]
+    battery_tab = [[sg.Text('Battery')], [sg.Input(key='-battery-')]]
+    prox_tab = [[sg.Text('Proximity')], [sg.Input(key='-prox-')]]
+    mic_tab = [[sg.Text('Mic')], [sg.Input(key='-led-')]]
 
-    file = r'data.xlsx'
-
-    df = pd.read_csv(file, header=None)
-    values = df.values.tolist()
-    headings = values[0]
-    data = values[1:]
-
-    # input_rows = [[sg.Input(size=(15, 1), pad=(0, 0)) for col in range(5)] for row in range(10)]
-    input_rows = [[sg.Table(data, headings=headings, key='-TABLE-')]]
-    layout = header + input_rows
-
-    # layout = [
-    #     [sg.TabGroup([[
-    #         sg.Tab('OPEN/SHORT TEST', tab1_layout),
-    #         sg.Tab('POGO TEST', tab2_layout),
-    #         sg.Tab('LED', tab3_layout),
-    #         sg.Tab('HALL SENSOR', tab4_layout),
-    #         sg.Tab('VBAT ID', tab5_layout),
-    #         sg.Tab('C TEST', tab6_layout),
-    #         sg.Tab('BATTERY TEST', tab7_layout),
-    #         sg.Tab('PROXIMITY TEST', tab8_layout),
-    #         sg.Tab('MIC', tab9_layout),
-    #     ]])],
-    #     [sg.Button('Exit', font=('Helvetica', 24))]
-    # ]
-    return sg.Window('RESULT', layout, finalize=True)
+    vertical_tab = [
+        [
+            sg.Tab('Conn', conn_tab, key='-Conn-tab-'),
+            sg.Tab('Pogo', pogo_tab, key='-pogo-tab-'),
+            sg.Tab('LED', led_tab, key='-led-tab-'),
+            sg.Tab('Hall', hall_tab, key='-hall-tab-'),
+            sg.Tab('VBAT', vbat_tab, key='-vbat-tab-'),
+            sg.Tab('Batt', battery_tab, key='-batt-tab-'),
+            sg.Tab('Prox', prox_tab, key='-prox-tab-'),
+            sg.Tab('MIC', mic_tab, key='-mic-tab-')
+        ]
+    ]
+    layout = [
+        [sg.TabGroup(vertical_tab, key='-CONFIG-', tab_location='left')],
+        [sg.Exit()],
+    ]
+    return sg.Window('Config', layout, finalize=True)
 
 
 text = ''
@@ -113,14 +109,14 @@ while True:
         elif window == window_main:  # if closing win 1, exit program
             break
 
-    elif event == 'Result view' and not window_result:
+    elif event == 'Config' and not window_result:
         window_result = result_window()
 
     elif event == 'Reload':
         window['serial_load'].update(_get_serial_ports())
 
     elif event == 'Connect':
-        ser.port = values[0].device
+        ser.port = values['serial_load']
         ser.baudrate = 115200
         ser.stopbits = 1
         ser.bytesize = 8
