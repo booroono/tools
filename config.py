@@ -3,7 +3,7 @@ import struct
 from PySide2.QtCore import Slot, Signal
 from PySide2.QtGui import Qt
 from PySide2.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTableWidget, QCheckBox, \
-    QFileDialog, QHeaderView, QComboBox, QTableWidgetItem
+    QFileDialog, QHeaderView, QComboBox, QTableWidgetItem, QMessageBox, QRadioButton
 
 from component.components import CheckButton
 from logger import logger
@@ -29,6 +29,8 @@ class TWSConfigView(QWidget):
         layout.setStretchFactor(main_layout, 8)
         layout.setStretchFactor(set_layout, 1)
 
+        load_save_layout.addWidget(left_radio := QRadioButton(STR_LEFT))
+        load_save_layout.addWidget(right_radio := QRadioButton(STR_RIGHT))
         load_save_layout.addWidget(load_button := QPushButton(STR_LOAD))
         load_save_layout.addWidget(save_button := QPushButton(STR_SAVE))
 
@@ -50,6 +52,8 @@ class TWSConfigView(QWidget):
 
         check_all.stateChanged.connect(self.check_all)
 
+        self.left_radio = left_radio
+        self.right_radio = right_radio
         self.load_button = load_button
         self.save_button = save_button
         self.set_button = set_button
@@ -84,24 +88,33 @@ class TWSConfigView(QWidget):
             else:
                 raise InterruptedError
         if button_name == STR_LOAD:
-            if fname := QFileDialog.getOpenFileName(self, 'Open file', './')[0]:
+            if fname := QFileDialog.getOpenFileName(self, 'Open file', './', 'Data Files(*.txt)')[0]:
                 self.load_file(fname)
         if button_name == STR_SAVE:
-            if fname := QFileDialog.getSaveFileName(self, 'Save file', './', 'Data Files(*.dat)')[0]:
+            if fname := QFileDialog.getSaveFileName(self, 'Save file', './', 'Data Files(*.txt)')[0]:
                 self.save_file(fname)
 
     def make_config_set_list(self):
         self.set_config_list.clear()
-        for step in self.steps:
-            if step.checkbox.checkState() == Qt.Checked:
-                self.set_config_list.append(step.button.text())
+        self.set_config_list = self.get_config_checked_list()
         return self.set_config_list
+
+    def get_config_checked_list(self):
+        return [
+            step.button.text()
+            for step in self.steps
+            if step.checkbox.checkState() == Qt.Checked
+        ]
+
+    def get_right_check(self):
+        return int(self.right_radio.isChecked())
 
     def send_config_data_to_serial(self):
         try:
             step_name = self.set_config_list.pop(0)
         except IndexError as e:
             logger.debug('step done!!!')
+            QMessageBox.information(self, "Config Result", "Config Set is Okay!!!")
             return
         step = STEP_SEQUENCES.index(step_name) + 1
         table = self.step_pages[step_name]
@@ -168,7 +181,7 @@ class TWSConfigView(QWidget):
             step_num = STEP_SEQUENCES.index(step_name) + 1
             line_datas.append(f"{step_num}:\n")
             table_values = self.get_table_values(step_table)
-            line_datas.extend(' '.join(value) + '\n' for value in table_values)
+            line_datas.extend(' '.join(value) + '\n' for value in table_values if value )
         with open(file_name, 'w') as f:
             f.writelines(line_datas)
 
@@ -177,9 +190,13 @@ class TWSConfigView(QWidget):
         values = []
         for column in range(table.columnCount()):
             if item := table.cellWidget(row, column):
-                values.append(item.currentIndex() - 1)
+                if value := item.currentIndex():
+                    values.append(str(value))
+                else:
+                    values.clear()
+                    break
             elif item := table.item(row, column):
-                values.append(int(item.text()))
+                values.append(item.text())
             else:
                 values.clear()
                 break
@@ -214,32 +231,46 @@ class TWSConfigView(QWidget):
             self.set_table_column_row_count(widget, 3, 48)
             widget.setHorizontalHeaderLabels([STR_POS, STR_NEG, STR_REF_VOLTAGE])
             for index in range(48):
-                combo_box = QComboBox()
-                combo_box.addItems(REF1)
-                widget.setCellWidget(index, 2, combo_box)
+                self.add_combobox_pin_num(index, 2, widget)
+                ref_voltage_combo_box = QComboBox()
+                ref_voltage_combo_box.addItems(REF1)
+                widget.setCellWidget(index, 2, ref_voltage_combo_box)
         if step == STR_POGO_OS:
             self.set_table_column_row_count(widget, 4, 1)
             widget.setHorizontalHeaderLabels([STR_J1_PIN, STR_J2_PIN, STR_POGO_PIN, STR_GND_PIN])
+            self.add_combobox_pin_num(0, 4, widget)
         if step == STR_LED:
             self.set_table_column_row_count(widget, 2, 1)
             widget.setHorizontalHeaderLabels([STR_LED_PIN, STR_GND_PIN])
+            self.add_combobox_pin_num(0, 2, widget)
         if step == STR_HALL_SENSOR:
             self.set_table_column_row_count(widget, 4, 1)
             widget.setHorizontalHeaderLabels([STR_18V_PIN, STR_I2C_SCL_PIN, STR_I2C_SDA_PIN, STR_GND_PIN])
+            self.add_combobox_pin_num(0, 4, widget)
         if step == STR_VBAT_ID:
             self.set_table_column_row_count(widget, 3, 1)
             widget.setHorizontalHeaderLabels([STR_18V_PIN, STR_BAT_ID_PIN, STR_GND_PIN])
+            self.add_combobox_pin_num(0, 3, widget)
         if step == STR_BATTERY:
             self.set_table_column_row_count(widget, 2, 1)
             widget.setHorizontalHeaderLabels([STR_VBATT_PIN, STR_GND_PIN])
+            self.add_combobox_pin_num(0, 2, widget)
         if step == STR_PROX:
             self.set_table_column_row_count(widget, 5, 1)
             widget.setHorizontalHeaderLabels([STR_33V_PIN, STR_18V_PIN, STR_I2C_SCL_PIN, STR_I2C_SDA_PIN, STR_GND_PIN])
+            self.add_combobox_pin_num(0, 5, widget)
         if step == STR_MIC:
             self.set_table_column_row_count(widget, 2, 1)
             widget.setHorizontalHeaderLabels([STR_MIC_18V_PIN, STR_GND_PIN])
+            self.add_combobox_pin_num(0, 2, widget)
         widget.setVisible(False)
         return widget
+
+    def add_combobox_pin_num(self, index, num, widget):
+        for num in range(num):
+            combo_box = QComboBox()
+            combo_box.addItems(PIN_NUM_LIST)
+            widget.setCellWidget(index, num, combo_box)
 
     def set_table_column_row_count(self, widget, column, row):
         widget.setColumnCount(column)

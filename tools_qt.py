@@ -2,7 +2,8 @@ import sys
 import traceback
 
 from PySide2.QtCore import Slot
-from PySide2.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QComboBox, QCheckBox, QTextEdit
+from PySide2.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QComboBox, QCheckBox, QTextEdit, \
+    QMessageBox
 
 from component.components import Button, GroupLabel, TextEdit
 from config import TWSConfigView
@@ -183,14 +184,21 @@ class TWSCheckerView(QWidget):
             self.start_step()
         if cmd == CMD_TEST_END:
             self.console_log.append(TEXT_TEXT_STOP)
-            stop_data = data[0]
+            QMessageBox.warning(self, "Machine Stop", "The test was aborted by the Machine")
         if cmd == CMD_RESULT_DATA:
             step, step_size, *result = data
-            to_config_data = [step] + list(result)
-            self.result_view.result_received_signal.emit(to_config_data)
+            try:
+                ordered_step = self.step_list.pop(0)
+                if step == STEP_SEQUENCES.index(ordered_step)+1:
+                    to_config_data = [step] + list(result)
+                    self.result_view.result_received_signal.emit(to_config_data)
+                else:
+                    raise IndexError
+            except IndexError as e:
+                QMessageBox.critical(self, TEXT_CRITICAL_MESSAGE, f"Result is not {ordered_step}")
 
     def make_step_list(self):
-        self.step_list = list(STEP_SEQUENCES)
+        self.step_list = self.config.get_config_checked_list()
 
     def start_step(self):
         self.make_step_list()
@@ -198,7 +206,7 @@ class TWSCheckerView(QWidget):
 
     def send_step_packet(self):
         try:
-            self.step_name = self.step_list.pop(0)
+            self.step_name = self.step_list[0]
             self.step_sequences[self.step_name].background_color = COLOR_SKY_LIGHT_BLUE
             self.console_log.append(f"{self.step_name} START\n")
         except IndexError as e:
@@ -209,7 +217,7 @@ class TWSCheckerView(QWidget):
             self.result_view.make_result_file_signal.emit()
         else:
             step = STEP_SEQUENCES.index(self.step_name) + 1
-            send_data = [CMD_TEST_START, SIDE, step]
+            send_data = [CMD_TEST_START, self.config.get_right_check(), step]
         self.serial.serial_write_data_signal.emit(send_data)
         # self.step_on_view()
 

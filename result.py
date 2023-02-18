@@ -165,13 +165,13 @@ class TWSResultView(QWidget):
 
     @staticmethod
     def get_table_row_datas(table, row):
-        values = []
         description, min_value, max_value = table.item(row, INDEX_COLUMN_DESCRIPTION), \
-                                            table.item(row, INDEX_COLUMN_MIN), \
-                                            table.item(row, INDEX_COLUMN_MAX)
+                                                table.item(row, INDEX_COLUMN_MIN), \
+                                                table.item(row, INDEX_COLUMN_MAX)
         if description and min_value and max_value:
-            values.extend([description.text(), min_value.text(), max_value.text()])
-        return values
+            return [description.text(), min_value.text(), max_value.text()]
+        else:
+            return []
 
     def get_table_values(self, table):
         values = []
@@ -221,7 +221,7 @@ class TWSResultView(QWidget):
     def button_clicked(self):
         button_name = self.sender().text()
         if button_name == STR_LOAD:
-            if fname := QFileDialog.getOpenFileName(self, 'Open file', './')[0]:
+            if fname := QFileDialog.getOpenFileName(self, 'Open file', './', 'Data Files(*.dat)')[0]:
                 self.load_file(fname)
         if button_name == STR_SAVE:
             if fname := QFileDialog.getSaveFileName(self, 'Save file', './', 'Data Files(*.dat)')[0]:

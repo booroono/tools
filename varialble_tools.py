@@ -19,6 +19,9 @@ STR_FAIL_SKIP = "FAIL SKIP"
 STR_CONFIG = "CONFIG"
 STR_RESULT = "RESULT"
 
+STR_LEFT = "LEFT"
+STR_RIGHT = "RIGHT"
+
 STR_CONN_OS = "CONN OS"
 STR_POGO_OS = "POGO OS"
 STR_LED = "LED"
@@ -109,10 +112,12 @@ REF1 = (
     "REF 1V 100KΩ",
     "REF 1V 1MΩ",
     "AMP 1.8V",
-    "REF 2V",
+    "REF 3.3V",
     "AMP 3.3V",
     "TP1"
 )
+
+PIN_NUM_LIST = [str(num) if num else "" for num in range(49)]
 
 STR_STOP = "STOP"
 
@@ -122,8 +127,6 @@ STR_SET = "SET"
 
 STR_CHECK_ALL = "CHECK ALL"
 
-
-
 COLOR_SKY_LIGHT_BLUE = 'lightskyblue'
 COLOR_GREEN = 'green'
 COLOR_RED = 'red'
@@ -131,6 +134,10 @@ COLOR_RED = 'red'
 TEXT_JIG_DOWN = "JIG Down detected!!\n"
 TEXT_TEST_DONE = "All Test Done!!\n"
 TEXT_TEXT_STOP = "Stop Test by Machine!!\n"
+
+TEXT_CRITICAL_MESSAGE = "Error Message"
+TEXT_ERROR_SEQUENCE = ""
+
 
 def xor_calc(s):
     b = 0

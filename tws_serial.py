@@ -26,6 +26,7 @@ class TWSSerial(QObject):
     def __init__(self):
         super(TWSSerial, self).__init__()
         self.serial = serial.Serial()
+        self.serial.baudrate = 115200
         self.buff = ''
         self.thread = Thread(target=self.read, daemon=True)
 
