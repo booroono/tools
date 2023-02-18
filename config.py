@@ -121,7 +121,7 @@ class TWSConfigView(QWidget):
         table_data = self.get_table_values(table)
         datas = []
         for row in table_data:
-            datas.extend(row)
+            datas.extend([int(value) if type(value) == str else value for value in row])
 
         if datas:
             datas.insert(0, step)
