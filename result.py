@@ -60,7 +60,7 @@ class TWSResultView(QWidget):
         self.filename = f"./{localtime.tm_year}{localtime.tm_mon:02d}{localtime.tm_mday:02d}.csv"
         num = 0
         while os.path.exists(self.filename):
-            self.filename = self.filename[:-4] + num + '.csv'
+            self.filename = f"{self.filename[:-4]}_{num}.csv'"
             num += 1
         self.result_num = 0
 
