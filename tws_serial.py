@@ -49,15 +49,27 @@ class TWSSerial(QObject):
 
     def read(self):
         while self.serial.is_open:
-
-            with contextlib.suppress(serial.SerialException, TypeError, AttributeError):
-                self.buff = self.serial.read_until(EOT)
-            if len(self.buff) == 0:
+            if self.read_one_byte()[0] != SOT:
                 continue
+
+            self.buff = b'\x10'  # header
+            self.buff += self.read_one_byte()  # sender
+            self.buff += self.read_one_byte()  # cmd
+            self.buff += b''.join([self.read_one_byte() for _ in range(2)])  # size
+            length = struct.unpack('>H', self.buff[-2:])[0]
+            self.buff += b''.join([self.read_one_byte() for _ in range(length)])  # data
+            self.buff += self.read_one_byte()  # xor
+            self.buff += b''.join([self.read_one_byte() for _ in range(3)])  # end
+
             if not self.is_valid_packet():
                 continue
+
             self.parse_packet()
         self.connection_state_signal.emit(False)
+
+    def read_one_byte(self):
+        with contextlib.suppress(serial.SerialException, TypeError, AttributeError):
+            return self.serial.read()
 
     def make_checksum(self, packet):
         xor = 0

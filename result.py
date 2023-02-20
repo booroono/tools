@@ -7,6 +7,7 @@ from PySide2.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QT
     QTableWidgetItem
 
 from component.components import Button
+from ini.Config import set_config_value, get_config_value
 from logger import logger
 from varialble_tools import *
 
@@ -16,7 +17,7 @@ class TWSResultView(QWidget):
     result_send_signal = Signal(bool)
     result_value_clear_signal = Signal()
 
-    make_result_file_signal = Signal()
+    make_result_file_signal = Signal(list)
 
     def __init__(self):
         super(TWSResultView, self).__init__()
@@ -62,6 +63,9 @@ class TWSResultView(QWidget):
             self.filename = self.filename[:-4] + num + '.csv'
             num += 1
         self.result_num = 0
+
+        if file := get_config_value(STR_FILES, STR_RESULT_FILE):
+            self.load_file(file)
 
     @Slot(list)
     def process_result(self, values):
@@ -223,6 +227,7 @@ class TWSResultView(QWidget):
         if button_name == STR_LOAD:
             if fname := QFileDialog.getOpenFileName(self, 'Open file', './', 'Data Files(*.dat)')[0]:
                 self.load_file(fname)
+                set_config_value(STR_FILES, STR_RESULT_FILE, fname)
         if button_name == STR_SAVE:
             if fname := QFileDialog.getSaveFileName(self, 'Save file', './', 'Data Files(*.dat)')[0]:
                 self.save_file(fname)
@@ -248,21 +253,29 @@ class TWSResultView(QWidget):
 
         return next((item for item in items if item == STR_FAIL), STR_PASS)
 
-    def make_result_file(self):
+    @Slot(list)
+    def make_result_file(self, step_list):
         descriptions = []
         min_values = []
         max_values = []
         values = []
-        for table in self.step_pages.values():
-            descriptions.extend(self.get_column_item(table, INDEX_COLUMN_DESCRIPTION))
-            min_values.extend(self.get_column_item(table, INDEX_COLUMN_MIN))
-            max_values.extend(self.get_column_item(table, INDEX_COLUMN_MAX))
-            values.extend(self.get_column_item(table, INDEX_COLUMN_VALUE))
+        for table_name in step_list:
+            descriptions.extend(self.get_column_item(self.step_pages[table_name], INDEX_COLUMN_DESCRIPTION))
+            min_values.extend(self.get_column_item(self.step_pages[table_name], INDEX_COLUMN_MIN))
+            max_values.extend(self.get_column_item(self.step_pages[table_name], INDEX_COLUMN_MAX))
+            values.extend(self.get_column_item(self.step_pages[table_name], INDEX_COLUMN_VALUE))
 
         self.result_num += 1
         if os.path.exists(self.filename):
             with open(self.filename, 'a', newline="") as f:
                 wr = csv.writer(f)
+                if len(step_list) != len(self.step_pages):
+                    descriptions.insert(0, 'description')
+                    min_values.insert(0, 'MIN')
+                    max_values.insert(0, 'MAX')
+                    wr.writerow(descriptions)
+                    wr.writerow(min_values)
+                    wr.writerow(max_values)
                 values.insert(0, self.result_num)
                 wr.writerow(values)
         else:

@@ -30,6 +30,7 @@ class Label(QLabel):
         self.setAlignment(Qt.AlignCenter)
         self.setStyleSheet('font-weight: bold;'
                            f'background-color: {self.background_color};')
+        self.color = 'black'
 
     def clean(self):
         self.set_background_color()

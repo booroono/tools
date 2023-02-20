@@ -7,6 +7,7 @@ from PySide2.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, Q
 
 from component.components import Button, GroupLabel, TextEdit
 from config import TWSConfigView
+from ini.Config import get_config_value, set_config_value
 from logger import logger
 from result import TWSResultView
 from tws_serial import TWSSerial, get_serial_available_list
@@ -109,6 +110,7 @@ class TWSCheckerView(QWidget):
         self.step_name = ''
 
         self.reload_button_clicked()
+        self.serial_combobox.setCurrentText(get_config_value(STR_SERIAL, STR_COMPORT))
         self.show()
 
     def reload_button_clicked(self):
@@ -117,6 +119,7 @@ class TWSCheckerView(QWidget):
 
     def connect_button_clicked(self):
         self.serial.connect_signal.emit(self.serial_combobox.currentText())
+        set_config_value(STR_SERIAL, STR_COMPORT, self.serial_combobox.currentText())
 
     def exit_button_clicked(self):
         self.close()
@@ -182,6 +185,8 @@ class TWSCheckerView(QWidget):
             self.zig_down_reset()
             self.console_log.append(TEXT_JIG_DOWN)
             self.start_step()
+        if cmd == CMD_SOFTWARE_RESET:
+            self.zig_down_reset()
         if cmd == CMD_TEST_END:
             self.console_log.append(TEXT_TEXT_STOP)
             QMessageBox.warning(self, "Machine Stop", "The test was aborted by the Machine")
@@ -189,7 +194,7 @@ class TWSCheckerView(QWidget):
             step, step_size, *result = data
             try:
                 ordered_step = self.step_list.pop(0)
-                if step == STEP_SEQUENCES.index(ordered_step)+1:
+                if step == STEP_SEQUENCES.index(ordered_step) + 1:
                     to_config_data = [step] + list(result)
                     self.result_view.result_received_signal.emit(to_config_data)
                 else:
@@ -211,10 +216,14 @@ class TWSCheckerView(QWidget):
             self.console_log.append(f"{self.step_name} START\n")
         except IndexError as e:
             self.step_name = len(STEP_SEQUENCES)
-            send_data = [CMD_TEST_END, TEST_STOP]
             self.console_log.append(TEXT_TEST_DONE)
             self.check_result = self.result_view.get_pass_fail()
-            self.result_view.make_result_file_signal.emit()
+            if self.check_result == STR_PASS:
+                send_data = [CMD_TEST_END, TEST_STOP]
+            else:
+                send_data = [CMD_TEST_END, TEST_FAIL]
+
+            self.result_view.make_result_file_signal.emit(self.config.get_config_checked_list())
         else:
             step = STEP_SEQUENCES.index(self.step_name) + 1
             send_data = [CMD_TEST_START, self.config.get_right_check(), step]
@@ -222,6 +231,7 @@ class TWSCheckerView(QWidget):
         # self.step_on_view()
 
     def zig_down_reset(self):
+        self.check_result = ''
         self.console_log.clear()
         self.sequence_color_reset()
 
@@ -258,6 +268,7 @@ class TWSCheckerView(QWidget):
         self.buttons[STR_RELOAD].setDisabled(state)
 
     def closeEvent(self, event):
+        self.serial.serial.close()
         self.config.close()
         self.result_view.close()
 

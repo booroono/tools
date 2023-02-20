@@ -6,6 +6,7 @@ from PySide2.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QT
     QFileDialog, QHeaderView, QComboBox, QTableWidgetItem, QMessageBox, QRadioButton
 
 from component.components import CheckButton
+from ini.Config import set_config_value, get_config_value
 from logger import logger
 from variables import CMD_CONFIG_SET
 from varialble_tools import *
@@ -65,6 +66,9 @@ class TWSConfigView(QWidget):
         self.connect_event()
         check_all.setChecked(True)
 
+        if file := get_config_value(STR_FILES, STR_CONFIG_FILE):
+            self.load_file(file)
+
     def connect_event(self):
         for step in self.steps:
             step.button.clicked.connect(self.step_clicked)
@@ -90,6 +94,7 @@ class TWSConfigView(QWidget):
         if button_name == STR_LOAD:
             if fname := QFileDialog.getOpenFileName(self, 'Open file', './', 'Data Files(*.txt)')[0]:
                 self.load_file(fname)
+                set_config_value(STR_FILES, STR_CONFIG_FILE, fname)
         if button_name == STR_SAVE:
             if fname := QFileDialog.getSaveFileName(self, 'Save file', './', 'Data Files(*.txt)')[0]:
                 self.save_file(fname)
@@ -181,7 +186,7 @@ class TWSConfigView(QWidget):
             step_num = STEP_SEQUENCES.index(step_name) + 1
             line_datas.append(f"{step_num}:\n")
             table_values = self.get_table_values(step_table)
-            line_datas.extend(' '.join(value) + '\n' for value in table_values if value )
+            line_datas.extend(' '.join(value) + '\n' for value in table_values if value)
         with open(file_name, 'w') as f:
             f.writelines(line_datas)
 
