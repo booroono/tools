@@ -1,16 +1,20 @@
 from PySide2.QtCore import Qt
 from PySide2.QtGui import QColor
-from PySide2.QtWidgets import QPushButton, QGroupBox, QVBoxLayout, QLabel, QHBoxLayout, QCheckBox, QTextEdit
+from PySide2.QtWidgets import QPushButton, QGroupBox, QVBoxLayout, QLabel, QHBoxLayout, QCheckBox, QTextEdit, \
+    QSizePolicy
 
 
 class Button(QPushButton):
-    def __init__(self, str):
+    def __init__(self, str, expanding=False):
         super(Button, self).__init__(str)
-        self._background_color = 'white'
+        if expanding:
+            self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.background_color = '#E1E1E1'
 
     def set_style_sheet(self):
         self.setStyleSheet(
-            f"background-color: {self.background_color}"
+            f"background-color: {self.background_color};"
+            f"font: bold;"
         )
 
     @property
@@ -30,7 +34,8 @@ class Label(QLabel):
         self.setAlignment(Qt.AlignCenter)
         self.setStyleSheet('font-weight: bold;'
                            f'background-color: {self.background_color};')
-        self.color = 'black'
+        self.color = 'yellow'
+        self.fontSize = 100
 
     def clean(self):
         self.set_background_color()
@@ -56,7 +61,7 @@ class Label(QLabel):
         self.setStyleSheet(f'background-color: {self.background_color};'
                            f'font-weight: bold;'
                            f'color: {self.color};'
-                           f'font-size: {100}px')
+                           f'font-size: {self.fontSize}px')
 
     def setText(self, txt: str) -> None:
         super().setText(txt)
@@ -71,6 +76,7 @@ class GroupLabel(QGroupBox):
         self.setTitle(title)
         layout = QVBoxLayout(self)
         layout.addWidget(self.label)
+        self.set_background_color("black")
 
     def set_font_size(self, value):
         self.label.set_font_size(value)
@@ -95,9 +101,9 @@ class CheckButton(QHBoxLayout):
     def __init__(self, process_name):
         super(CheckButton, self).__init__()
         self.addWidget(checkbox := QCheckBox())
-        self.addWidget(button := QPushButton(process_name))
-        self.setStretchFactor(checkbox, 2)
-        self.setStretchFactor(button, 8)
+        self.addWidget(button := Button(process_name, expanding=True))
+        self.setStretchFactor(checkbox, 1)
+        self.setStretchFactor(button, 9)
 
         self.button = button
         self.checkbox = checkbox
@@ -113,3 +119,9 @@ class TextEdit(QTextEdit):
         elif color == 'green':
             color = QColor()
         self.setTextColor(color)
+
+
+def change_color_selected_button(button_list, button):
+    for item in button_list:
+        item.background_color = '#E1E1E1'
+    button.background_color = 'lightskyblue'

@@ -3,12 +3,14 @@ import contextlib
 from threading import Thread
 
 import serial
-from PySide2.QtCore import QObject, Signal, Slot
+from PySide2.QtCore import QObject, Signal, Slot, QTimer
 from PySide2.QtSerialPort import QSerialPortInfo
 
 from CustomException import AvailableError
 from logger import logger
 from variables import *
+
+CONNECTION_TIME = 2000
 
 
 def get_serial_available_list():
@@ -22,6 +24,7 @@ class TWSSerial(QObject):
     connection_state_signal = Signal(bool)
     serial_read_data_signal = Signal(list)
     serial_write_data_signal = Signal(list)
+    reset_time_signal = Signal()
 
     def __init__(self):
         super(TWSSerial, self).__init__()
@@ -32,16 +35,20 @@ class TWSSerial(QObject):
 
         self.connect_signal.connect(self.open)
         self.serial_write_data_signal.connect(self.make_send_packet)
+        self.connect_timer = QTimer(self)
+        self.connect_timer.timeout.connect(self.timer_timeout)
+        self.reset_time_signal.connect(self.connect_timer.start)
 
     @Slot(str)
     def open(self, comport):
         if self.serial.is_open:
-            self.serial.close()
+            self.timer_timeout()
             return
         self.port = comport
         with contextlib.suppress(serial.SerialException):
             self.serial.open()
             self.connection_state_signal.emit(True)
+            self.connect_timer.start(CONNECTION_TIME)
 
             if not self.thread.is_alive():
                 self.thread = Thread(target=self.read, daemon=True)
@@ -49,8 +56,11 @@ class TWSSerial(QObject):
 
     def read(self):
         while self.serial.is_open:
-            if self.read_one_byte()[0] != SOT:
-                continue
+            try:
+                if self.read_one_byte()[0] != SOT:
+                    continue
+            except IndexError:
+                return
 
             self.buff = b'\x10'  # header
             self.buff += self.read_one_byte()  # sender
@@ -63,8 +73,18 @@ class TWSSerial(QObject):
 
             if not self.is_valid_packet():
                 continue
-
+            self.reset_time_signal.emit()
+            if self.connect_timer.isActive():
+                logger.debug('start')
             self.parse_packet()
+        self.connection_state_signal.emit(False)
+
+    def timer_timeout(self):
+        try:
+            self.serial.close()
+        except Exception as e:
+            logger.error(e)
+        self.connect_timer.stop()
         self.connection_state_signal.emit(False)
 
     def read_one_byte(self):

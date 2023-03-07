@@ -3,9 +3,9 @@ import struct
 from PySide2.QtCore import Slot, Signal
 from PySide2.QtGui import Qt
 from PySide2.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTableWidget, QCheckBox, \
-    QFileDialog, QHeaderView, QComboBox, QTableWidgetItem, QMessageBox, QRadioButton
+    QFileDialog, QHeaderView, QComboBox, QTableWidgetItem, QMessageBox, QRadioButton, QGridLayout, QLineEdit, QLabel
 
-from component.components import CheckButton
+from component.components import CheckButton, change_color_selected_button
 from ini.Config import set_config_value, get_config_value
 from logger import logger
 from variables import CMD_CONFIG_SET
@@ -15,6 +15,7 @@ from varialble_tools import *
 class TWSConfigView(QWidget):
     config_received_signal = Signal(int)
     config_data_send_signal = Signal(list)
+    file_name_change_signal = Signal()
 
     def __init__(self):
         super(TWSConfigView, self).__init__()
@@ -34,6 +35,7 @@ class TWSConfigView(QWidget):
         load_save_layout.addWidget(right_radio := QRadioButton(STR_RIGHT))
         load_save_layout.addWidget(load_button := QPushButton(STR_LOAD))
         load_save_layout.addWidget(save_button := QPushButton(STR_SAVE))
+        load_save_layout.addWidget(password_button := QPushButton(STR_PASSWORD))
 
         main_layout.addLayout(steps_layout := QVBoxLayout())
         main_layout.addLayout(config_layout := QHBoxLayout())
@@ -55,30 +57,35 @@ class TWSConfigView(QWidget):
 
         self.left_radio = left_radio
         self.right_radio = right_radio
-        self.load_button = load_button
-        self.save_button = save_button
-        self.set_button = set_button
+
+        # button
+        load_button.clicked.connect(self.button_clicked)
+        save_button.clicked.connect(self.button_clicked)
+        set_button.clicked.connect(self.button_clicked)
+        password_button.clicked.connect(self.button_clicked)
+
         self.steps = steps
         self.step_pages = step_pages
 
         self.set_config_list = []
 
+        self.password_changed_widget = TWSConfigChangePassword()
+
         self.connect_event()
         check_all.setChecked(True)
 
+        change_color_selected_button([step.button for step in self.steps], self.steps[0].button)
+
         if file := get_config_value(STR_FILES, STR_CONFIG_FILE):
             self.load_file(file)
+
 
     def connect_event(self):
         for step in self.steps:
             step.button.clicked.connect(self.step_clicked)
 
-        # button
-        self.load_button.clicked.connect(self.button_clicked)
-        self.save_button.clicked.connect(self.button_clicked)
-        self.set_button.clicked.connect(self.button_clicked)
-
         self.config_received_signal.connect(self.received_config)
+        self.password_changed_widget.password_changed.connect(self.password_changed_widget.close)
 
     def check_all(self, state):
         for step in self.steps:
@@ -95,9 +102,12 @@ class TWSConfigView(QWidget):
             if fname := QFileDialog.getOpenFileName(self, 'Open file', './', 'Data Files(*.txt)')[0]:
                 self.load_file(fname)
                 set_config_value(STR_FILES, STR_CONFIG_FILE, fname)
+                self.file_name_change_signal.emit()
         if button_name == STR_SAVE:
             if fname := QFileDialog.getSaveFileName(self, 'Save file', './', 'Data Files(*.txt)')[0]:
                 self.save_file(fname)
+        if button_name == STR_PASSWORD:
+            self.password_changed_widget.show()
 
     def make_config_set_list(self):
         self.set_config_list.clear()
@@ -141,6 +151,11 @@ class TWSConfigView(QWidget):
             steps_page.setVisible(False)
 
         self.step_pages[self.sender().text()].setVisible(True)
+
+        change_color_selected_button(
+            [step.button for step in self.steps],
+            self.sender()
+        )
 
     def load_file(self, file_name):
         with open(file_name, 'r') as f:
@@ -286,3 +301,66 @@ class TWSConfigView(QWidget):
             header.setSectionResizeMode(index, QHeaderView.ResizeToContents)
 
         return widget
+
+    def closeEvent(self, e):
+        self.password_changed_widget.close()
+
+class TWSConfigPassword(QWidget):
+    password_ok_signal = Signal()
+
+    def __init__(self):
+        super(TWSConfigPassword, self).__init__()
+        self.setWindowTitle("Enter Password")
+        self.setLayout(layout := QHBoxLayout())
+        layout.addWidget(input_password := QLineEdit())
+        layout.addWidget(password_enter := QPushButton("Enter"))
+        input_password.setEchoMode(QLineEdit.Password)
+        input_password.setMinimumWidth(200)
+
+        input_password.returnPressed.connect(self.clicked_enter)
+        password_enter.clicked.connect(self.clicked_enter)
+
+        self.input_password = input_password
+
+    def clicked_enter(self):
+        if self.input_password.text() == get_config_value(STR_PASSWORD, STR_PASSWORD):
+            self.password_ok_signal.emit()
+        else:
+            QMessageBox.warning(self, "Error", "Password is not Correct!!")
+        self.input_password.clear()
+
+
+class TWSConfigChangePassword(QWidget):
+    password_changed = Signal()
+
+    def __init__(self):
+        super(TWSConfigChangePassword, self).__init__()
+        self.setWindowTitle("Change Password")
+        self.setLayout(layout := QGridLayout())
+        layout.addWidget(QLabel("New Password"), 0, 0)
+        layout.addWidget(new_password := QLineEdit(), 0, 1)
+        layout.addWidget(QLabel("Confirm Password"), 1, 0)
+        layout.addWidget(confirm_password := QLineEdit(), 1, 1)
+        layout.addWidget(enter_button := QPushButton("Enter"), 2, 1)
+        new_password.setEchoMode(QLineEdit.Password)
+        confirm_password.setEchoMode(QLineEdit.Password)
+
+        new_password.returnPressed.connect(confirm_password.setFocus)
+        confirm_password.returnPressed.connect(self.clicked_enter)
+        enter_button.clicked.connect(self.clicked_enter)
+
+        self.new_password = new_password
+        self.confirm_password = confirm_password
+
+    def clicked_enter(self):
+        if self.new_password.text() == self.confirm_password.text():
+            set_config_value(STR_PASSWORD, STR_PASSWORD, self.new_password.text())
+            QMessageBox.information(self, "Password", "Password is Changed!!")
+            self.password_changed.emit()
+        else:
+            QMessageBox.warning(self, "Error", "Password is not matched!!")
+        self.clear_line_edits()
+
+    def clear_line_edits(self):
+        self.new_password.clear()
+        self.confirm_password.clear()

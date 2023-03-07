@@ -39,11 +39,14 @@ class Config:
     def init_config(self):
         config = configparser.ConfigParser()
         config.optionxform = lambda option: option
+        config.add_section(STR_PASSWORD)
+        config[STR_PASSWORD][STR_PASSWORD] = 'bujeon'
         config.add_section(STR_SERIAL)
         config[STR_SERIAL][STR_COMPORT] = ''
         config.add_section(STR_FILES)
         config[STR_FILES][STR_CONFIG_FILE] = ''
         config[STR_FILES][STR_RESULT_FILE] = ''
+        config[STR_FILES][STR_RESULT_NUM] = '0'
 
         with open(self.filename, 'w') as configfile:
             config.write(configfile)
