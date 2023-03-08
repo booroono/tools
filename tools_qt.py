@@ -225,6 +225,7 @@ class TWSCheckerView(QWidget):
         self.zig_down_reset()
         self.console_log.append(TEXT_JIG_DOWN)
         self.start_step()
+        self.result_view.clean_result_signal.emit()
 
     def cmd_result_data(self, data):
         step, step_size, *result = data
@@ -266,6 +267,7 @@ class TWSCheckerView(QWidget):
                 send_data = [CMD_TEST_END, TEST_FAIL]
 
             self.result_view.make_result_file_signal.emit(STEP_SEQUENCES)
+            self.result_view.count_signal.emit(self.config.get_config_checked_list())
         else:
             step = STEP_SEQUENCES.index(self.step_name) + 1
             send_data = [CMD_TEST_START, self.config.get_right_check(), step]
@@ -310,6 +312,7 @@ class TWSCheckerView(QWidget):
         send_data = [CMD_TEST_END, TEST_FAIL]
         self.serial.serial_write_data_signal.emit(send_data)
         self.step_sequences[self.step_name].background_color = 'red'
+        self.result_view.count_signal.emit(self.config.get_config_checked_list())
 
     @Slot(bool)
     def serial_state(self, state):

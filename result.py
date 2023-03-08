@@ -5,7 +5,7 @@ import time
 from PySide2.QtCore import Signal, Slot
 from PySide2.QtGui import QColor
 from PySide2.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTableWidget, QFileDialog, QHeaderView, \
-    QTableWidgetItem
+    QTableWidgetItem, QGroupBox, QGridLayout, QLabel
 
 from component.components import Button, change_color_selected_button
 from ini.Config import set_config_value, get_config_value
@@ -30,10 +30,14 @@ class TWSResultView(QWidget):
 
     make_result_file_signal = Signal(list)
     file_name_change_signal = Signal()
+    count_signal = Signal(list)
+
+    clean_result_signal = Signal()
 
     def __init__(self):
         super(TWSResultView, self).__init__()
         self.setWindowTitle(STR_RESULT)
+        self.status_widget = TWSStatusView()
 
         self.setMinimumWidth(WINDOW_WIDTH + WINDOW_RESULT_WIDTH_ADD)
         self.setMinimumHeight(WINDOW_HEIGHT)
@@ -45,6 +49,7 @@ class TWSResultView(QWidget):
 
         load_save_layout.addWidget(load_button := QPushButton(STR_LOAD))
         load_save_layout.addWidget(save_button := QPushButton(STR_SAVE))
+        load_save_layout.addWidget(status_button := QPushButton(STR_STATUS))
 
         main_layout.addLayout(steps_layout := QVBoxLayout())
         main_layout.addLayout(config_layout := QHBoxLayout())
@@ -61,6 +66,7 @@ class TWSResultView(QWidget):
 
         self.load_button = load_button
         self.save_button = save_button
+        self.status_button = status_button
         self.steps = steps
         self.step_pages = step_pages
 
@@ -240,11 +246,14 @@ class TWSResultView(QWidget):
         # button
         self.load_button.clicked.connect(self.button_clicked)
         self.save_button.clicked.connect(self.button_clicked)
+        self.status_button.clicked.connect(self.button_clicked)
 
         # event connect
         self.result_received_signal.connect(self.process_result)
         self.result_value_clear_signal.connect(self.clear_value)
         self.make_result_file_signal.connect(self.make_result_file)
+        self.count_signal.connect(self.make_count)
+        self.clean_result_signal.connect(self.clean_result)
 
     def button_clicked(self):
         button_name = self.sender().text()
@@ -256,6 +265,13 @@ class TWSResultView(QWidget):
         if button_name == STR_SAVE:
             if fname := QFileDialog.getSaveFileName(self, 'Save file', './', 'Data Files(*.dat)')[0]:
                 self.save_file(fname)
+        if button_name == STR_STATUS:
+            if self.status_widget.isMinimized():
+                self.status_widget.showNormal()
+            elif self.status_widget.isVisible():
+                self.status_widget.close()
+            else:
+                self.status_widget.show()
 
     def step_clicked(self):
         logger.debug(f"{self.sender().text()} button clicked!!!")
@@ -280,12 +296,30 @@ class TWSResultView(QWidget):
                     items.append('')
         return items
 
+    def clean_item(self, table):
+        for row in range(table.rowCount()):
+            table.setItem(row, INDEX_COLUMN_VALUE, QTableWidgetItem(''))
+            table.setItem(row, INDEX_COLUMN_RESULT, QTableWidgetItem(''))
+
     def get_pass_fail(self):
         items = []
         for table in self.step_pages.values():
             items.extend(self.get_column_item(table, INDEX_COLUMN_RESULT))
         return next((STR_FAIL for item in items if item != STR_PASS), STR_PASS)
         # return next((item for item in items if item == STR_FAIL), STR_PASS)
+
+    @Slot()
+    def clean_result(self):
+        for table in self.step_pages.values():
+            self.clean_item(table)
+
+    @Slot(list)
+    def make_count(self, step_list):
+        if len(step_list) == len(STEP_SEQUENCES):
+            self.status_widget.total_pass_fail_signal.emit(self.get_pass_fail() == STR_PASS)
+        self.status_widget.step_error_result_signal.emit(
+            self.get_step_pass_fail_list()
+        )
 
     @Slot(list)
     def make_result_file(self, step_list):
@@ -302,8 +336,8 @@ class TWSResultView(QWidget):
             values.extend(self.get_column_item(self.step_pages[table_name], INDEX_COLUMN_VALUE))
 
         descriptions.extend(RESULT_PASS_FAIL_HEADER)
-        min_values.extend([STR_NA]*len(RESULT_PASS_FAIL_HEADER))
-        max_values.extend([STR_NA]*len(RESULT_PASS_FAIL_HEADER))
+        min_values.extend([STR_NA] * len(RESULT_PASS_FAIL_HEADER))
+        max_values.extend([STR_NA] * len(RESULT_PASS_FAIL_HEADER))
         values.extend(self.make_pass_fail_for_file())
 
         descriptions.insert(0, 'description')
@@ -320,17 +354,28 @@ class TWSResultView(QWidget):
         )
 
     def make_pass_fail_for_file(self):
-        pass_fails = []
-        for index in range(len(RESULT_PASS_FAIL_HEADER)):
-            if index:
-                pass_fail = self.get_column_item(self.step_pages[STEP_SEQUENCES[index - 1]], INDEX_COLUMN_RESULT)
-                if all(STR_PASS == item for item in pass_fail):
-                    pass_fails.append('O')
-                else:
-                    pass_fails.append('X')
-            else:
-                pass_fails.append(self.get_pass_fail())
+        pass_fails = [self.get_pass_fail()]
+        pass_fails.extend(self.get_step_pass_fail_list(pos='O', nag='X'))
+        # for index in range(len(RESULT_PASS_FAIL_HEADER)):
+        #     if index:
+        #         pass_fail = self.get_column_item(self.step_pages[STEP_SEQUENCES[index - 1]], INDEX_COLUMN_RESULT)
+        #         if all(STR_PASS == item for item in pass_fail):
+        #             pass_fails.append('O')
+        #         else:
+        #             pass_fails.append('X')
+        #     else:
+        #         pass_fails.append(self.get_pass_fail())
         return pass_fails
+
+    def get_step_pass_fail_list(self, pos=True, nag=False):
+        pass_fail_list = []
+        for step in STEP_SEQUENCES:
+            a = self.get_column_item(self.step_pages[step], INDEX_COLUMN_RESULT)
+            if all(STR_PASS == item or item == '' for item in a):
+                pass_fail_list.append(pos)
+            else:
+                pass_fail_list.append(nag)
+        return pass_fail_list
 
     def result_file_write(
             self,
@@ -352,8 +397,216 @@ class TWSResultView(QWidget):
                 self.csv_write_row(wr, descriptions, min_values, max_values)
                 wr.writerow(values)
         set_config_value(STR_FILES, STR_RESULT_NUM, self.result_num)
+
     @staticmethod
     def csv_write_row(wr, descriptions, min_values, max_values):
         wr.writerow(descriptions)
         wr.writerow(min_values)
         wr.writerow(max_values)
+
+    def closeEvent(self, event):
+        self.status_widget.close()
+
+
+class TWSStatusView(QWidget):
+    status_update_signal = Signal(list)
+    total_pass_fail_signal = Signal(bool)
+    step_error_result_signal = Signal(list)
+
+    def __init__(self):
+        super(TWSStatusView, self).__init__()
+        self.setWindowTitle("STATUS")
+        self.setMinimumWidth(WINDOW_STATUS_WIDTH)
+        self.setMinimumHeight(WINDOW_STATUS_HEIGHT)
+
+        # component
+        self.total_label = QLabel(str(self.total))
+        self.ok_label = QLabel(str(self.ok))
+        self.ng_label = QLabel(str(self.ng))
+        self.total_reset_button = QPushButton(STR_RESET)
+
+        self.error_count_labels = {
+            step: QLabel(get_config_value(STR_ERROR_COUNT, step))
+            for step in STEP_SEQUENCES
+        }
+        self.error_reset_button = QPushButton(STR_RESET)
+
+        # layout
+        self.setLayout(layout := QVBoxLayout())
+        layout.addWidget(total_groupbox := QGroupBox("TOTAL COUNT"))
+        total_groupbox.setLayout(total_layout := QGridLayout())
+        total_layout.addWidget(QLabel("TOTAL"), 0, 0)
+        total_layout.addWidget(QLabel("OK"), 0, 1)
+        total_layout.addWidget(QLabel("NG"), 0, 2)
+        total_layout.addWidget(self.total_label, 1, 0)
+        total_layout.addWidget(self.ok_label, 1, 1)
+        total_layout.addWidget(self.ng_label, 1, 2)
+        total_layout.addWidget(self.total_reset_button, 2, 2)
+
+        layout.addWidget(error_groupbox := QGroupBox("ERROR COUNT"))
+        error_groupbox.setLayout(error_layout := QGridLayout())
+        error_layout.addWidget(QLabel("Error Number"), 0, 1)
+        for index, (step, label) in enumerate(self.error_count_labels.items()):
+            error_layout.addWidget(QLabel(step), index + 1, 0)
+            error_layout.addWidget(label, index + 1, 1)
+        error_layout.addWidget(self.error_reset_button, index + 2, 1)
+
+        layout.setStretchFactor(total_groupbox, 3)
+        layout.setStretchFactor(error_groupbox, 7)
+
+        self.component_zip()
+        self.event_connector()
+
+    def component_zip(self):
+        self.total_labels = {
+            STR_COUNT_TOTAL: self.total_label,
+            STR_COUNT_OK: self.ok_label,
+            STR_COUNT_NG: self.ng_label
+        }
+
+    def event_connector(self):
+        self.total_reset_button.clicked.connect(self.clicked_total_reset_button)
+        self.error_reset_button.clicked.connect(self.clicked_error_reset_button)
+
+        self.status_update_signal.connect(self.status_update)
+
+        self.total_pass_fail_signal.connect(self.add_total_count)
+        self.step_error_result_signal.connect(self.add_error_count)
+
+    def add_total_count(self, pass_fail):
+        self.total += 1
+        self.ok += pass_fail
+        self.ng += not pass_fail
+
+    def add_error_count(self, pass_fails):
+        iter_result = iter(pass_fails)
+        self.con += not next(iter_result)
+        self.pogo += not next(iter_result)
+        self.led += not next(iter_result)
+        self.hall += not next(iter_result)
+        self.vbat += not next(iter_result)
+        self.battery += not next(iter_result)
+        self.prox += not next(iter_result)
+        self.mic += not next(iter_result)
+
+    def status_update(self, item):
+        key, value = item
+        if key in [STR_COUNT_TOTAL, STR_COUNT_OK, STR_COUNT_NG]:
+            labels = self.total_labels
+        else:
+            labels = self.error_count_labels
+        labels[key].setText(str(value))
+
+    def clicked_total_reset_button(self):
+        self.total = 0
+        self.ok = 0
+        self.ng = 0
+
+    def clicked_error_reset_button(self):
+        self.con = 0
+        self.pogo = 0
+        self.led = 0
+        self.hall = 0
+        self.vbat = 0
+        self.battery = 0
+        self.prox = 0
+        self.mic = 0
+
+    @property
+    def total(self):
+        return int(get_config_value(STR_COUNT, STR_COUNT_TOTAL))
+
+    @total.setter
+    def total(self, value):
+        set_config_value(STR_COUNT, STR_COUNT_TOTAL, value)
+        self.status_update_signal.emit([STR_COUNT_TOTAL, value])
+
+    @property
+    def ok(self):
+        return int(get_config_value(STR_COUNT, STR_COUNT_OK))
+
+    @ok.setter
+    def ok(self, value):
+        set_config_value(STR_COUNT, STR_COUNT_OK, value)
+        self.status_update_signal.emit([STR_COUNT_OK, value])
+
+    @property
+    def ng(self):
+        return int(get_config_value(STR_COUNT, STR_COUNT_NG))
+
+    @ng.setter
+    def ng(self, value):
+        set_config_value(STR_COUNT, STR_COUNT_NG, value)
+        self.status_update_signal.emit([STR_COUNT_NG, value])
+
+    @property
+    def con(self):
+        return int(get_config_value(STR_ERROR_COUNT, STR_ERROR_COUNT_CON))
+
+    @con.setter
+    def con(self, value):
+        set_config_value(STR_ERROR_COUNT, STR_ERROR_COUNT_CON, value)
+        self.status_update_signal.emit([STR_ERROR_COUNT_CON, value])
+
+    @property
+    def pogo(self):
+        return int(get_config_value(STR_ERROR_COUNT, STR_ERROR_COUNT_POGO))
+
+    @pogo.setter
+    def pogo(self, value):
+        set_config_value(STR_ERROR_COUNT, STR_ERROR_COUNT_POGO, value)
+        self.status_update_signal.emit([STR_ERROR_COUNT_POGO, value])
+
+    @property
+    def led(self):
+        return int(get_config_value(STR_ERROR_COUNT, STR_ERROR_COUNT_LED))
+
+    @led.setter
+    def led(self, value):
+        set_config_value(STR_ERROR_COUNT, STR_ERROR_COUNT_LED, value)
+        self.status_update_signal.emit([STR_ERROR_COUNT_LED, value])
+
+    @property
+    def hall(self):
+        return int(get_config_value(STR_ERROR_COUNT, STR_ERROR_COUNT_HALL))
+
+    @hall.setter
+    def hall(self, value):
+        set_config_value(STR_ERROR_COUNT, STR_ERROR_COUNT_HALL, value)
+        self.status_update_signal.emit([STR_ERROR_COUNT_HALL, value])
+
+    @property
+    def vbat(self):
+        return int(get_config_value(STR_ERROR_COUNT, STR_ERROR_COUNT_VBATID))
+
+    @vbat.setter
+    def vbat(self, value):
+        set_config_value(STR_ERROR_COUNT, STR_ERROR_COUNT_VBATID, value)
+        self.status_update_signal.emit([STR_ERROR_COUNT_VBATID, value])
+
+    @property
+    def battery(self):
+        return int(get_config_value(STR_ERROR_COUNT, STR_ERROR_COUNT_BATTERY))
+
+    @battery.setter
+    def battery(self, value):
+        set_config_value(STR_ERROR_COUNT, STR_ERROR_COUNT_BATTERY, value)
+        self.status_update_signal.emit([STR_ERROR_COUNT_BATTERY, value])
+
+    @property
+    def prox(self):
+        return int(get_config_value(STR_ERROR_COUNT, STR_ERROR_COUNT_PROX))
+
+    @prox.setter
+    def prox(self, value):
+        set_config_value(STR_ERROR_COUNT, STR_ERROR_COUNT_PROX, value)
+        self.status_update_signal.emit([STR_ERROR_COUNT_PROX, value])
+
+    @property
+    def mic(self):
+        return int(get_config_value(STR_ERROR_COUNT, STR_ERROR_COUNT_MIC))
+
+    @mic.setter
+    def mic(self, value):
+        set_config_value(STR_ERROR_COUNT, STR_ERROR_COUNT_MIC, value)
+        self.status_update_signal.emit([STR_ERROR_COUNT_MIC, value])

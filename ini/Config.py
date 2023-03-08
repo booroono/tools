@@ -47,6 +47,19 @@ class Config:
         config[STR_FILES][STR_CONFIG_FILE] = ''
         config[STR_FILES][STR_RESULT_FILE] = ''
         config[STR_FILES][STR_RESULT_NUM] = '0'
+        config.add_section(STR_COUNT)
+        config[STR_COUNT][STR_COUNT_TOTAL] = '0'
+        config[STR_COUNT][STR_COUNT_OK] = '0'
+        config[STR_COUNT][STR_COUNT_NG] = '0'
+        config.add_section(STR_ERROR_COUNT)
+        config[STR_ERROR_COUNT][STR_ERROR_COUNT_CON] = '0'
+        config[STR_ERROR_COUNT][STR_ERROR_COUNT_POGO] = '0'
+        config[STR_ERROR_COUNT][STR_ERROR_COUNT_LED] = '0'
+        config[STR_ERROR_COUNT][STR_ERROR_COUNT_HALL] = '0'
+        config[STR_ERROR_COUNT][STR_ERROR_COUNT_VBATID] = '0'
+        config[STR_ERROR_COUNT][STR_ERROR_COUNT_BATTERY] = '0'
+        config[STR_ERROR_COUNT][STR_ERROR_COUNT_PROX] = '0'
+        config[STR_ERROR_COUNT][STR_ERROR_COUNT_MIC] = '0'
 
         with open(self.filename, 'w') as configfile:
             config.write(configfile)
