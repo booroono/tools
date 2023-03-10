@@ -65,14 +65,14 @@ CONFIG_BATTERY = 6
 CONFIG_PROX_TEST = 7
 
 REF1 = {
-    "REF 1V 1KΩ": 0,
-    "REF 1V 10KΩ": 1,
-    "REF 1V 100KΩ": 2,
-    "REF 1V 1MΩ": 3,
-    "AMP 1.8V": 4,
-    "REF 2V": 5,
-    "AMP 3.3V": 6,
-    "TP1": 7
+    "REF R 1KΩ": 0,
+    "REF R 10KΩ": 1,
+    "REF R 100KΩ": 2,
+    "REF R 1MΩ": 3,
+    "REF R 10MΩ": 4,
+    "P 3.3V": 5,
+    "AMP 1.8V": 6,
+    "AMP 3.3V": 7
 }
 
 REF2 = {
@@ -84,39 +84,42 @@ REF2 = {
 
 ETC = {
     "ETC AD": 0,
-    "TP2-TP3": 1,
-    "I2C": 2,
-    "FREQ": 3
+    "TP4-TP2": 1,
+    "TP5-TP3": 2,
+    "I2C": 3
 }
 
 AD_READ = {
     'mux_ad8': 0,
-    'etc_ad': 1,
-    'ref_1.0v': 3,
-    'ref_2.0v': 4,
-    '1.8v_cc': 5,
-    '3.3v_cc': 6,
-    'ad_cds': 7
+    'mux_ad4': 1,
+    'etc_ad': 2,
+    '1.8v_cc': 3,
+    '3.3v_cc': 4,
+    'ad_cds1': 5,
+    'ad_cds2': 6,
+    'ad_cds3': 7
 }
 
 AD_READ_TEXT = {
     'mux_ad8': 'MUX AD8',
+    'mux_ad4': 'MUX AD4',
     'etc_ad': 'ETC AD',
-    'ref_1.0v': 'REF 1.0V',
-    'ref_2.0v': 'REF 2.0V',
     '1.8v_cc': '1.8V CC',
     '3.3v_cc': '3.3V CC',
-    'ad_cds': 'AD CDS'
+    'ad_cds1': 'AD CDS1',
+    'ad_cds2': 'AD CDS2',
+    'ad_cds3': 'AD CDS3'
 }
 
 AD_READ_TYPE = {
     'mux_ad8': VOLTAGE,
+    'mux_ad4': VOLTAGE,
     'etc_ad': DIGITAL,
-    'ref_1.0v': VOLTAGE,
-    'ref_2.0v': VOLTAGE,
     '1.8v_cc': VOLTAGE,
     '3.3v_cc': VOLTAGE,
-    'ad_cds': VOLTAGE
+    'ad_cds1': VOLTAGE,
+    'ad_cds2': VOLTAGE,
+    'ad_cds3': VOLTAGE
 }
 
 SOL_VALUE = {f"-sol{num}-": 10 + num - 1 for num in range(1, 9)}
