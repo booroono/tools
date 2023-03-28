@@ -3,7 +3,6 @@ from serial import Serial
 import serial.tools.list_ports
 from threading import Thread
 import os
-import pandas as pd
 
 sg.theme('DefaultNoMoreNagging')
 
@@ -11,11 +10,9 @@ ser = Serial()
 
 com = list(serial.tools.list_ports.comports())
 
+
 def _get_serial_ports():
-    ports = []
-    for port, desc, hwid in sorted(serial.tools.list_ports.comports()):
-        ports.append(port)
-    return ports
+    return [port for port, desc, hwid in sorted(serial.tools.list_ports.comports())]
 
 
 def main_window():

@@ -17,8 +17,9 @@ class TWSConfigView(QWidget):
     config_data_send_signal = Signal(list)
     file_name_change_signal = Signal()
 
-    def __init__(self):
+    def __init__(self, serial):
         super(TWSConfigView, self).__init__()
+        self.serial = serial
         self.setWindowTitle(STR_CONFIG)
 
         self.setMinimumWidth(WINDOW_WIDTH)
@@ -93,6 +94,7 @@ class TWSConfigView(QWidget):
 
     def button_clicked(self):
         button_name = self.sender().text()
+        self.serial.timer_stop_signal.emit()
         if button_name == STR_SET:
             if self.make_config_set_list():
                 self.send_config_data_to_serial()
@@ -108,6 +110,8 @@ class TWSConfigView(QWidget):
                 self.save_file(fname)
         if button_name == STR_PASSWORD:
             self.password_changed_widget.show()
+
+        self.serial.reset_tim_signal.emit()
 
     def make_config_set_list(self):
         self.set_config_list.clear()

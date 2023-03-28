@@ -31,9 +31,9 @@ class TWSCheckerView(QWidget):
     def __init__(self, serial):
         super(TWSCheckerView, self).__init__()
         self.serial = serial
-        self.config = TWSConfigView()
+        self.config = TWSConfigView(serial)
         self.config_password = TWSConfigPassword()
-        self.result_view = TWSResultView()
+        self.result_view = TWSResultView(serial)
         self.setMinimumWidth(WINDOW_WIDTH)
         self.setMinimumHeight(WINDOW_HEIGHT)
         self.setLayout(layout := QVBoxLayout())

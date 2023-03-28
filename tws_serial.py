@@ -25,6 +25,7 @@ class TWSSerial(QObject):
     serial_read_data_signal = Signal(list)
     serial_write_data_signal = Signal(list)
     reset_time_signal = Signal()
+    timer_stop_signal = Signal()
 
     def __init__(self):
         super(TWSSerial, self).__init__()
@@ -38,6 +39,7 @@ class TWSSerial(QObject):
         self.connect_timer = QTimer(self)
         self.connect_timer.timeout.connect(self.timer_timeout)
         self.reset_time_signal.connect(self.connect_timer.start)
+        self.timer_stop_signal.connect(self.connect_timer.stop)
 
     @Slot(str)
     def open(self, comport):

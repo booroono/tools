@@ -34,8 +34,9 @@ class TWSResultView(QWidget):
 
     clean_result_signal = Signal()
 
-    def __init__(self):
+    def __init__(self, serial):
         super(TWSResultView, self).__init__()
+        self.serial = serial
         self.setWindowTitle(STR_RESULT)
         self.status_widget = TWSStatusView()
 
@@ -257,6 +258,7 @@ class TWSResultView(QWidget):
 
     def button_clicked(self):
         button_name = self.sender().text()
+        self.serial.timer_stop_signal.emit()
         if button_name == STR_LOAD:
             if fname := QFileDialog.getOpenFileName(self, 'Open file', './', 'Data Files(*.dat)')[0]:
                 self.load_file(fname)
@@ -272,6 +274,7 @@ class TWSResultView(QWidget):
                 self.status_widget.close()
             else:
                 self.status_widget.show()
+        self.serial.reset_tim_signal.emit()
 
     def step_clicked(self):
         logger.debug(f"{self.sender().text()} button clicked!!!")
