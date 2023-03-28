@@ -308,7 +308,8 @@ class TWSResultView(QWidget):
         items = []
         for table in self.step_pages.values():
             items.extend(self.get_column_item(table, INDEX_COLUMN_RESULT))
-        return next((STR_FAIL for item in items if item != STR_PASS), STR_PASS)
+        return next((STR_FAIL for item in items if item == STR_FAIL), STR_PASS)
+        # return next((STR_FAIL for item in items if item != STR_PASS), STR_PASS)
         # return next((item for item in items if item == STR_FAIL), STR_PASS)
 
     @Slot()

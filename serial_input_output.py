@@ -118,7 +118,7 @@ def parse_result(data):
         return struct.unpack('>BH4HI', data)
     if step_no == RESULT_HALL_SENSOR:
         return struct.unpack('>BHH6BHBHBH2BI', data)
-    if step_no == RESULT_VBAT_ID or step_no == RESULT_BATTERY:
+    if step_no in [RESULT_VBAT_ID, RESULT_BATTERY]:
         return struct.unpack('>BHH', data)
     if step_no == RESULT_PROX_TEST:
         return struct.unpack('>BH2H2BHB2HB2I', data)

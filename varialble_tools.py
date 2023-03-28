@@ -138,10 +138,10 @@ REF1 = (
     "REF 1V 10KΩ",
     "REF 1V 100KΩ",
     "REF 1V 1MΩ",
+    "REF 1V 10MΩ",
+    "P 3.3V",
     "AMP 1.8V",
-    "REF 3.3V",
     "AMP 3.3V",
-    "TP1"
 )
 
 PIN_NUM_LIST = [str(num) if num else "" for num in range(49)]

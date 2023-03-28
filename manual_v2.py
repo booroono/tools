@@ -38,9 +38,12 @@ layout_mux = [
     [sg.Text('REF 전압 1', justification='center', font=('Helvetica', 22), size=(11, 1), relief=sg.RELIEF_RIDGE),
      sg.Text('REF 전압 2', justification='center', font=('Helvetica', 22), size=(11, 1), relief=sg.RELIEF_RIDGE),
      sg.Text('ETC', justification='center', font=('Helvetica', 22), size=(11, 1), relief=sg.RELIEF_RIDGE)],
-    [sg.InputCombo(list(REF1.keys()), size=(13, 1), font=('Helvetica', 17), key="Ref_1_input", default_value=list(REF1.keys())[0]),
-     sg.InputCombo(list(REF2.keys()), size=(13, 1), font=('Helvetica', 17), key="Ref_2_input", default_value=list(REF2.keys())[0]),
-     sg.InputCombo(list(ETC.keys()), size=(13, 1), font=('Helvetica', 17), key="ETC_input", default_value=list(ETC.keys())[0])],
+    [sg.InputCombo(list(REF1.keys()), size=(13, 1), font=('Helvetica', 17), key="Ref_1_input",
+                   default_value=list(REF1.keys())[0]),
+     sg.InputCombo(list(REF2.keys()), size=(13, 1), font=('Helvetica', 17), key="Ref_2_input",
+                   default_value=list(REF2.keys())[0]),
+     sg.InputCombo(list(ETC.keys()), size=(13, 1), font=('Helvetica', 17), key="ETC_input",
+                   default_value=list(ETC.keys())[0])],
     [sg.Button('On', font=('Helvetica', 18), size=(6, 1), button_color='blue', key='Ref_1_On'),
      sg.Button('Off', font=('Helvetica', 17), size=(6, 1), button_color='red', key='Ref_1_Off'),
      sg.Button('On', font=('Helvetica', 18), size=(6, 1), button_color='blue', key='Ref_2_On'),
@@ -69,13 +72,16 @@ layout_sol = [
 layout_Out_control = [
     [sg.Button('ALL OFF', font=('Helvetica', 16), button_color='red', size=(51, 1), key='all_off_button')],
     [sg.HorizontalSeparator(color='white')],
-    [sg.Frame("접점제어", layout_connector, element_justification='center', font=('Helvetica', 28), pad=(5, 3), expand_x=True, expand_y=True,
+    [sg.Frame("접점제어", layout_connector, element_justification='center', font=('Helvetica', 28), pad=(5, 3),
+              expand_x=True, expand_y=True,
               background_color='#404040', border_width=0, title_location=sg.TITLE_LOCATION_TOP)],
     [sg.HorizontalSeparator(color='white')],
-    [sg.Frame("MUX 제어", layout_mux, element_justification='center', font=('Helvetica', 28), pad=(5, 3), expand_x=True, expand_y=True,
+    [sg.Frame("MUX 제어", layout_mux, element_justification='center', font=('Helvetica', 28), pad=(5, 3), expand_x=True,
+              expand_y=True,
               background_color='#404040', border_width=0, title_location=sg.TITLE_LOCATION_TOP)],
     [sg.HorizontalSeparator(color='white')],
-    [sg.Frame("Sol 제어", layout_sol, element_justification='center', font=('Helvetica', 28), pad=(5, 3), expand_x=True, expand_y=True,
+    [sg.Frame("Sol 제어", layout_sol, element_justification='center', font=('Helvetica', 28), pad=(5, 3), expand_x=True,
+              expand_y=True,
               background_color='#404040', border_width=0, title_location=sg.TITLE_LOCATION_TOP)],
 ]
 
@@ -94,14 +100,14 @@ layout_AD_control = [
      sg.Button('3.3V CC', font=('Helvetica', 36), size=(5, 2), key='3.3v_cc'),
      sg.Button('AD CDS1', font=('Helvetica', 36), size=(5, 2), key='ad_cds1')],
     [
-     sg.Button('AD CDS2', font=('Helvetica', 36), size=(5, 2), key='ad_cds2'),
-     sg.Button('AD CDS3', font=('Helvetica', 36), size=(5, 2), key='ad_cds3')]]
+        sg.Button('AD CDS2', font=('Helvetica', 36), size=(5, 2), key='ad_cds2'),
+        sg.Button('AD CDS3', font=('Helvetica', 36), size=(5, 2), key='ad_cds3')]]
 
 layout_Serial = [[sg.Text('Port:   ', font=('Helvetica', 24)),
                   sg.InputCombo(com, size=(38, 1), font=('Helvetica', 24), key='port'),
                   sg.RButton('Reload', font=('Helvetica', 18), size=(8, 1)),
-                  sg.Button('Connect', font=('Helvetica', 18), size=(8, 1), button_color='blue'),],
-                  # sg.Button('Disconnect', font=('Helvetica', 18), size=(10, 1), button_color='red')],
+                  sg.Button('Connect', font=('Helvetica', 18), size=(8, 1), button_color='blue'), ],
+                 # sg.Button('Disconnect', font=('Helvetica', 18), size=(10, 1), button_color='red')],
                  [sg.Multiline('', key='message', size=(74, 15), font=('Helvetica', 24), autoscroll=True, focus=True)]]
 
 layout = [
@@ -119,11 +125,11 @@ def ad_value_input(value):
     global digital_output
     global resistance_output
     if ad_type == VOLTAGE:
-        voltage_output = str(value)+VOLTAGE
+        voltage_output = str(value) + VOLTAGE
     elif ad_type == DIGITAL:
         digital_output = str(value)
     else:
-        resistance_output = str(value)+RESISTANCE
+        resistance_output = str(value) + RESISTANCE
 
 
 def readData():
@@ -134,24 +140,35 @@ def readData():
         if ser is not None and ser.is_open:
             if text.count('\n') > 10000:
                 text = text[text.index('\n') + 1:]
-            received_packet = ser.read_until(EOT)
-            # print(received_packet)
-            # text += ' '.join([f"{int(hex(row)[2:]):02d}" for row in received_packet]) + '\n'
-            text += ' '.join([f"{'0' + hex(row)[2:] if len(hex(row)[2:]) == 1 else hex(row)[2:]}" for row in received_packet]) + '\n'
-            if not sss.is_valid_packet(received_packet):
+            buff = ser.read()[0]
+
+            if buff != SOT:
                 continue
 
-            if not (parsed_value := sss.parse_packet(received_packet)):
+            buff = b'\x10'  # header
+            buff += ser.read()  # sender
+            buff += ser.read()  # cmd
+            buff += b''.join([ser.read() for _ in range(2)])  # size
+            length = struct.unpack('>H', buff[-2:])[0]
+            buff += b''.join([ser.read() for _ in range(length)])  # data
+            buff += ser.read()  # xor
+            buff += b''.join([ser.read() for _ in range(3)])  # end
+
+            # print(buff)
+            # text += ' '.join([f"{int(hex(row)[2:]):02d}" for row in buff]) + '\n'
+            text += ' '.join(
+                [f"{'0' + hex(row)[2:] if len(hex(row)[2:]) == 1 else hex(row)[2:]}" for row in buff]) + '\n'
+            if not sss.is_valid_packet(buff):
+                continue
+
+            if not (parsed_value := sss.parse_packet(buff)):
                 continue
 
             cmd, *datas = parsed_value
 
             if len(datas) == 2:
                 data_type, value = datas
-                if data_type:
-                    ad_type = RESISTANCE
-                else:
-                    ad_type = VOLTAGE
+                ad_type = RESISTANCE if data_type else VOLTAGE
             else:
                 value = datas[0]
 
@@ -159,11 +176,9 @@ def readData():
 
             # text += ser.read().decode('cp1252')
 
-def _get_serial_ports():
-    ports = []
-    for port, desc, hwid in sorted(serial.tools.list_ports.comports()):
-        ports.append(port)
-    return ports
+
+def get_serial_ports():
+    return [port for port, desc, hwid in sorted(serial.tools.list_ports.comports())]
 
 
 window = sg.Window("Manual", layout, margins=(2, 2), finalize=True)
@@ -181,7 +196,7 @@ while True:
         break
 
     elif event == 'Reload':
-        window['port'].update(_get_serial_ports())
+        window['port'].update(get_serial_ports())
 
     elif event == 'Connect':
         print(values['port'])
