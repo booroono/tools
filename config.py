@@ -44,7 +44,7 @@ class TWSConfigView(QWidget):
         main_layout.setStretchFactor(config_layout, 7)
 
         steps_layout.addWidget(check_all := QCheckBox(STR_CHECK_ALL))
-        steps = [CheckButton(step) for step in STEP_SEQUENCES]
+        steps = [CheckButton(f"{index + 1}.{step}") for index, step in enumerate(STEP_SEQUENCES)]
         for step in steps:
             steps_layout.addLayout(step)
         step_pages = {step: self.make_table_widget(step) for step in STEP_SEQUENCES}
@@ -154,7 +154,7 @@ class TWSConfigView(QWidget):
         for steps_page in self.step_pages.values():
             steps_page.setVisible(False)
 
-        self.step_pages[self.sender().text()].setVisible(True)
+        self.step_pages[self.sender().text()[2:]].setVisible(True)
 
         change_color_selected_button(
             [step.button for step in self.steps],

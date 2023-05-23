@@ -160,7 +160,7 @@ def parse_received_packet(packet):
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     serial_buff = b''
-    s = serial.Serial('com14', 115200)
+    s = serial.Serial('com4', 115200)
     while True:
         serial_buff += s.read_until(b'\x20')
         if is_valid_packet(serial_buff):

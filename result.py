@@ -57,7 +57,7 @@ class TWSResultView(QWidget):
         main_layout.setStretchFactor(steps_layout, 2)
         main_layout.setStretchFactor(config_layout, 8)
 
-        steps = [Button(step, expanding=True) for step in STEP_SEQUENCES]
+        steps = [Button(f"{index + 1}.{step}", expanding=True) for index, step in enumerate(STEP_SEQUENCES)]
         for step in steps:
             steps_layout.addWidget(step)
         step_pages = {step: self.make_table_widget(step) for step in STEP_SEQUENCES}
@@ -281,7 +281,7 @@ class TWSResultView(QWidget):
         for steps_page in self.step_pages.values():
             steps_page.setVisible(False)
 
-        self.step_pages[self.sender().text()].setVisible(True)
+        self.step_pages[self.sender().text()[2:]].setVisible(True)
 
         change_color_selected_button(
             self.steps,

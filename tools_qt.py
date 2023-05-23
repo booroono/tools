@@ -67,7 +67,8 @@ class TWSCheckerView(QWidget):
         main_layout.setStretchFactor(step_sequence_layout, 3)
         main_layout.setStretchFactor(result_layout, 7)
 
-        step_sequences = {step: Button(step, expanding=True) for step in STEP_SEQUENCES}
+        step_sequences = {step: Button(f"{index + 1}.{step}", expanding=True) for index, step in
+                          enumerate(STEP_SEQUENCES_MAIN)}
         for step in step_sequences.values():
             step_sequence_layout.addWidget(step)
 
@@ -230,7 +231,7 @@ class TWSCheckerView(QWidget):
     def cmd_result_data(self, data):
         step, step_size, *result = data
         try:
-            ordered_step = self.step_list.pop(0)
+            ordered_step = self.step_list.pop(0)[2:]
             if step == STEP_SEQUENCES.index(ordered_step) + 1:
                 to_config_data = [step] + list(result)
                 self.result_view.result_received_signal.emit(to_config_data)
@@ -253,9 +254,9 @@ class TWSCheckerView(QWidget):
 
     def send_step_packet(self):
         try:
-            self.step_name = self.step_list[0]
+            self.step_name = self.step_list[0][2:]
             self.step_sequences[self.step_name].background_color = COLOR_SKY_LIGHT_BLUE
-            self.console_log.append(f"{self.step_name[2:]} START\n")
+            self.console_log.append(f"{self.step_name} START\n")
         except IndexError as e:
             self.step_name = len(STEP_SEQUENCES)
             self.console_log.append(TEXT_TEST_DONE)
@@ -271,6 +272,8 @@ class TWSCheckerView(QWidget):
         else:
             step = STEP_SEQUENCES.index(self.step_name) + 1
             send_data = [CMD_TEST_START, self.config.get_right_check(), step]
+            if step > 5:
+                self.step_sequences[STR_CTEST].background_color = COLOR_GREEN
         self.serial.serial_write_data_signal.emit(send_data)
         # self.step_on_view()
 
@@ -286,11 +289,11 @@ class TWSCheckerView(QWidget):
     @Slot(list)
     def received_pass_fail(self, result):
         if result:
-            self.console_log.append(f"{self.step_name[2:]} END\n")
+            self.console_log.append(f"{self.step_name} END\n")
             self.step_sequences[self.step_name].background_color = COLOR_GREEN
             self.send_step_packet()
         elif self.fail_skip_checkbox.checkState():
-            self.console_log.append(f"{self.step_name[2:]} FAIL but SKIP!!\n")
+            self.console_log.append(f"{self.step_name} FAIL but SKIP!!\n")
             self.step_sequences[self.step_name].background_color = COLOR_RED
             self.check_result = STR_FAIL
             self.send_step_packet()
