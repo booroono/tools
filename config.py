@@ -80,7 +80,6 @@ class TWSConfigView(QWidget):
         if file := get_config_value(STR_FILES, STR_CONFIG_FILE):
             self.load_file(file)
 
-
     def connect_event(self):
         for step in self.steps:
             step.button.clicked.connect(self.step_clicked)
@@ -111,7 +110,7 @@ class TWSConfigView(QWidget):
         if button_name == STR_PASSWORD:
             self.password_changed_widget.show()
 
-        self.serial.reset_tim_signal.emit()
+        self.serial.reset_time_signal.emit()
 
     def make_config_set_list(self):
         self.set_config_list.clear()
@@ -130,7 +129,7 @@ class TWSConfigView(QWidget):
 
     def send_config_data_to_serial(self):
         try:
-            step_name = self.set_config_list.pop(0)
+            step_name = self.set_config_list.pop(0)[2:]
         except IndexError as e:
             logger.debug('step done!!!')
             QMessageBox.information(self, "Config Result", "Config Set is Okay!!!")
@@ -308,6 +307,7 @@ class TWSConfigView(QWidget):
 
     def closeEvent(self, e):
         self.password_changed_widget.close()
+
 
 class TWSConfigPassword(QWidget):
     password_ok_signal = Signal()
