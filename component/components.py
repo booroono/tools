@@ -1,4 +1,4 @@
-from PySide2.QtCore import Qt
+from PySide2.QtCore import Qt, Signal
 from PySide2.QtGui import QColor
 from PySide2.QtWidgets import QPushButton, QGroupBox, QVBoxLayout, QLabel, QHBoxLayout, QCheckBox, QTextEdit, \
     QSizePolicy
@@ -98,6 +98,8 @@ class GroupLabel(QGroupBox):
 
 
 class CheckButton(QHBoxLayout):
+    state_changed_signal = Signal(dict)
+
     def __init__(self, process_name):
         super(CheckButton, self).__init__()
         self.addWidget(checkbox := QCheckBox())
@@ -107,6 +109,11 @@ class CheckButton(QHBoxLayout):
 
         self.button = button
         self.checkbox = checkbox
+
+        self.checkbox.stateChanged.connect(self.state_changed)
+
+    def state_changed(self, state):
+        self.state_changed_signal.emit({'name': self.button.text()[2:], 'state': state})
 
 
 class TextEdit(QTextEdit):
@@ -125,3 +132,16 @@ def change_color_selected_button(button_list, button):
     for item in button_list:
         item.background_color = '#E1E1E1'
     button.background_color = 'lightskyblue'
+
+
+def modify_sequence_visible(button_dict, states):
+    button_dict[states['name']].setVisible(states['state'])
+    visible_button_numbering(button_dict.values())
+
+
+def visible_button_numbering(button_list):
+    index = 1
+    for button in button_list:
+        if button.isVisible():
+            button.setText(f'{index}.{button.text()[2:]}')
+            index += 1

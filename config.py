@@ -16,6 +16,7 @@ class TWSConfigView(QWidget):
     config_received_signal = Signal(int)
     config_data_send_signal = Signal(list)
     file_name_change_signal = Signal()
+    checkbox_checked_signal = Signal(dict)
 
     def __init__(self, serial):
         super(TWSConfigView, self).__init__()
@@ -46,6 +47,7 @@ class TWSConfigView(QWidget):
         steps_layout.addWidget(check_all := QCheckBox(STR_CHECK_ALL))
         steps = [CheckButton(f"{index + 1}.{step}") for index, step in enumerate(STEP_SEQUENCES)]
         for step in steps:
+            step.state_changed_signal.connect(self.checkbox_checked_signal.emit)
             steps_layout.addLayout(step)
         step_pages = {step: self.make_table_widget(step) for step in STEP_SEQUENCES}
         for table in step_pages.values():
@@ -207,6 +209,7 @@ class TWSConfigView(QWidget):
             line_datas.extend(' '.join(value) + '\n' for value in table_values if value)
         with open(file_name, 'w') as f:
             f.writelines(line_datas)
+
 
     @staticmethod
     def get_table_row_datas(table, row):

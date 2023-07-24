@@ -7,7 +7,7 @@ from PySide2.QtGui import QColor
 from PySide2.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTableWidget, QFileDialog, QHeaderView, \
     QTableWidgetItem, QGroupBox, QGridLayout, QLabel
 
-from component.components import Button, change_color_selected_button
+from component.components import Button, change_color_selected_button, modify_sequence_visible, visible_button_numbering
 from ini.Config import set_config_value, get_config_value
 from logger import logger
 from varialble_tools import *
@@ -33,6 +33,7 @@ class TWSResultView(QWidget):
     count_signal = Signal(list)
 
     clean_result_signal = Signal()
+    checkbox_checked_signal = Signal(dict)
 
     def __init__(self, serial):
         super(TWSResultView, self).__init__()
@@ -57,8 +58,8 @@ class TWSResultView(QWidget):
         main_layout.setStretchFactor(steps_layout, 2)
         main_layout.setStretchFactor(config_layout, 8)
 
-        steps = [Button(f"{index + 1}.{step}", expanding=True) for index, step in enumerate(STEP_SEQUENCES_MAIN)]
-        for step in steps:
+        steps = {step: Button(f"{index + 1}.{step}", expanding=True) for index, step in enumerate(STEP_SEQUENCES_MAIN)}
+        for step in steps.values():
             steps_layout.addWidget(step)
         step_pages = {step: self.make_table_widget(step) for step in STEP_SEQUENCES}
         for table in step_pages.values():
@@ -82,10 +83,13 @@ class TWSResultView(QWidget):
         if os.path.exists(self.filename):
             self.result_num = int(get_config_value(STR_FILES, STR_RESULT_NUM))
 
-        change_color_selected_button(self.steps, self.steps[0])
+        change_color_selected_button(self.steps.values(), self.steps[STR_CONN_OS])
 
         if file := get_config_value(STR_FILES, STR_RESULT_FILE):
             self.load_file(file)
+
+    def showEvent(self, e):
+        visible_button_numbering(self.steps.values())
 
     @Slot(list)
     def process_result(self, values):
@@ -241,7 +245,7 @@ class TWSResultView(QWidget):
         return widget
 
     def connect_event(self):
-        for step in self.steps:
+        for step in self.steps.values():
             step.clicked.connect(self.step_clicked)
 
         # button
@@ -255,6 +259,7 @@ class TWSResultView(QWidget):
         self.make_result_file_signal.connect(self.make_result_file)
         self.count_signal.connect(self.make_count)
         self.clean_result_signal.connect(self.clean_result)
+        self.checkbox_checked_signal.connect(self.modify_sequence)
 
     def button_clicked(self):
         button_name = self.sender().text()
@@ -286,7 +291,7 @@ class TWSResultView(QWidget):
         self.step_pages[self.sender().text()[2:]].setVisible(True)
 
         change_color_selected_button(
-            self.steps,
+            self.steps.values(),
             self.sender()
         )
 
@@ -313,6 +318,9 @@ class TWSResultView(QWidget):
         return next((STR_FAIL for item in items if item == STR_FAIL), STR_PASS)
         # return next((STR_FAIL for item in items if item != STR_PASS), STR_PASS)
         # return next((item for item in items if item == STR_FAIL), STR_PASS)
+
+    def modify_sequence(self, states):
+        modify_sequence_visible(self.steps, states)
 
     @Slot()
     def clean_result(self):

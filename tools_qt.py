@@ -6,7 +6,7 @@ from PySide2.QtCore import Slot, QTimer
 from PySide2.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QComboBox, QCheckBox, QTextEdit, \
     QMessageBox, QPushButton
 
-from component.components import Button, GroupLabel
+from component.components import Button, GroupLabel, modify_sequence_visible
 from config import TWSConfigView, TWSConfigPassword
 from ini.Config import get_config_value, set_config_value
 from logger import logger
@@ -187,6 +187,8 @@ class TWSCheckerView(QWidget):
         # config event connect
         self.result_view.file_name_change_signal.connect(self.refresh_filenames)
         self.result_view.result_send_signal.connect(self.received_pass_fail)
+        self.config.checkbox_checked_signal.connect(self.modify_sequence)
+        self.config.checkbox_checked_signal.connect(self.result_view.checkbox_checked_signal.emit)
         self.config.file_name_change_signal.connect(self.refresh_filenames)
         self.config.config_data_send_signal.connect(self.serial.serial_write_data_signal.emit)
         self.config_password.password_ok_signal.connect(self.config_password.close)
@@ -300,6 +302,9 @@ class TWSCheckerView(QWidget):
         else:
             self.step_sequences[self.step_name].background_color = COLOR_RED
             self.fail_work()
+
+    def modify_sequence(self, states):
+        modify_sequence_visible(self.step_sequences, states)
 
     def refresh_filenames(self):
         config_file = get_config_value(STR_FILES, STR_CONFIG_FILE).split('/')[-1]
