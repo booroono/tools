@@ -171,8 +171,14 @@ class TWSConfigView(QWidget):
         steps = []
         for index, step_num in enumerate(step_start_nums):
             if index == len(step_start_nums) - 1:
-                steps.append(lines[step_num + 1:])
+                if "check_steps" in lines[step_num]:
+                    check_steps = lines[step_num + 1].split(',')
+                    for step in self.steps:
+                        step.checkbox.setChecked(step.button.text() in check_steps)
+                else:
+                    steps.append(lines[step_num + 1:])
                 continue
+
             steps.append(lines[step_num + 1:step_start_nums[index + 1]])
 
         for step_num, step in enumerate(steps):
@@ -207,9 +213,9 @@ class TWSConfigView(QWidget):
             line_datas.append(f"{step_num}:\n")
             table_values = self.get_table_values(step_table)
             line_datas.extend(' '.join(value) + '\n' for value in table_values if value)
+        line_datas.extend(("check_steps:\n", ",".join(self.get_config_checked_list())))
         with open(file_name, 'w') as f:
             f.writelines(line_datas)
-
 
     @staticmethod
     def get_table_row_datas(table, row):

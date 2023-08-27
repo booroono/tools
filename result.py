@@ -279,7 +279,7 @@ class TWSResultView(QWidget):
                 self.status_widget.close()
             else:
                 self.status_widget.show()
-        self.serial.reset_tim_signal.emit()
+        self.serial.reset_time_signal.emit()
 
     def step_clicked(self):
         logger.debug(f"{self.sender().text()} button clicked!!!")
