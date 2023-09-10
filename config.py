@@ -1,3 +1,6 @@
+import contextlib
+import json
+import os
 import struct
 
 from PySide2.QtCore import Slot, Signal
@@ -45,8 +48,8 @@ class TWSConfigView(QWidget):
         main_layout.setStretchFactor(config_layout, 7)
 
         steps_layout.addWidget(check_all := QCheckBox(STR_CHECK_ALL))
-        steps = [CheckButton(f"{index + 1}.{step}") for index, step in enumerate(STEP_SEQUENCES)]
-        for step in steps:
+        steps = {step: CheckButton(f"{index + 1}.{step}") for index, step in enumerate(STEP_SEQUENCES)}
+        for step in steps.values():
             step.state_changed_signal.connect(self.checkbox_checked_signal.emit)
             steps_layout.addLayout(step)
         step_pages = {step: self.make_table_widget(step) for step in STEP_SEQUENCES}
@@ -77,20 +80,21 @@ class TWSConfigView(QWidget):
         self.connect_event()
         check_all.setChecked(True)
 
-        change_color_selected_button([step.button for step in self.steps], self.steps[0].button)
+        change_color_selected_button([step.button for step in self.steps.values()], self.steps[STR_CONN_OS].button)
 
         if file := get_config_value(STR_FILES, STR_CONFIG_FILE):
-            self.load_file(file)
+            if os.path.isfile(file):
+                self.load_file(file)
 
     def connect_event(self):
-        for step in self.steps:
+        for step in self.steps.values():
             step.button.clicked.connect(self.step_clicked)
 
         self.config_received_signal.connect(self.received_config)
         self.password_changed_widget.password_changed.connect(self.password_changed_widget.close)
 
     def check_all(self, state):
-        for step in self.steps:
+        for step in self.steps.values():
             step.checkbox.setChecked(state)
 
     def button_clicked(self):
@@ -122,7 +126,7 @@ class TWSConfigView(QWidget):
     def get_config_checked_list(self):
         return [
             step.button.text()
-            for step in self.steps
+            for step in self.steps.values()
             if step.checkbox.checkState() == Qt.Checked
         ]
 
@@ -158,11 +162,22 @@ class TWSConfigView(QWidget):
         self.step_pages[self.sender().text()[2:]].setVisible(True)
 
         change_color_selected_button(
-            [step.button for step in self.steps],
+            [step.button for step in self.steps.values()],
             self.sender()
         )
 
-    def load_file(self, file_name):
+    def set_config_from_json(self, json_data):
+        for k, v in json_data.items():
+            if k == 'is_right':
+                if v is True:
+                    self.right_radio.setChecked(True)
+                else:
+                    self.left_radio.setChecked(True)
+                continue
+            self.set_table_values(self.step_pages[k], [list(map(int, value)) for value in v['table values']])
+            self.steps[k].checkbox.setChecked(v["checked"])
+
+    def set_config_from_txt(self, file_name):
         with open(file_name, 'r') as f:
             lines = f.readlines()
         lines = [line.replace('\n', '') for line in lines]
@@ -173,7 +188,7 @@ class TWSConfigView(QWidget):
             if index == len(step_start_nums) - 1:
                 if "check_steps" in lines[step_num]:
                     check_steps = lines[step_num + 1].split(',')
-                    for step in self.steps:
+                    for step in self.steps.values():
                         step.checkbox.setChecked(step.button.text() in check_steps)
                 else:
                     steps.append(lines[step_num + 1:])
@@ -183,6 +198,22 @@ class TWSConfigView(QWidget):
 
         for step_num, step in enumerate(steps):
             self.fill_table_widget_from_load_file(step_num, step)
+        self.check_all(True)
+
+
+
+    def load_file(self, file_name):
+        json_data = None
+        # check json
+        with open(file_name) as f:
+            with contextlib.suppress(json.decoder.JSONDecodeError):
+                json_data = json.load(f)
+
+        if not json_data:
+            self.set_config_from_txt(file_name)
+            json_data = self.save_file(file_name)
+
+        self.set_config_from_json(json_data)
 
     def fill_table_widget_from_load_file(self, step_num, datas):
         table = self.get_table_widget_from_step_num(step_num)
@@ -207,15 +238,17 @@ class TWSConfigView(QWidget):
         return self.step_pages[STEP_SEQUENCES[step_num]]
 
     def save_file(self, file_name):
-        line_datas = []
+        json_data = {'is_right': self.right_radio.isChecked()}
         for step_name, step_table in self.step_pages.items():
             step_num = STEP_SEQUENCES.index(step_name) + 1
-            line_datas.append(f"{step_num}:\n")
             table_values = self.get_table_values(step_table)
-            line_datas.extend(' '.join(value) + '\n' for value in table_values if value)
-        line_datas.extend(("check_steps:\n", ",".join(self.get_config_checked_list())))
+            json_data[step_name] = {"table values": table_values, 'checked': False}
+        for k, v in self.steps.items():
+            if v.checkbox.checkState() == Qt.Checked:
+                json_data[k]["checked"] = True
         with open(file_name, 'w') as f:
-            f.writelines(line_datas)
+            json.dump(json_data, f)
+        return json_data
 
     @staticmethod
     def get_table_row_datas(table, row):
