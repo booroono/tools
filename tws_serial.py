@@ -38,8 +38,12 @@ class TWSSerial(QObject):
         self.serial_write_data_signal.connect(self.make_send_packet)
         self.connect_timer = QTimer(self)
         self.connect_timer.timeout.connect(self.timer_timeout)
-        self.reset_time_signal.connect(self.connect_timer.start)
+        self.reset_time_signal.connect(self.connect_timer_Start)
         self.timer_stop_signal.connect(self.connect_timer.stop)
+
+    def connect_timer_Start(self):
+        if self.serial.is_open:
+            self.connect_timer.start()
 
     @Slot(str)
     def open(self, comport):

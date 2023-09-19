@@ -51,6 +51,7 @@ class TWSResultView(QWidget):
 
         load_save_layout.addWidget(load_button := QPushButton(STR_LOAD))
         load_save_layout.addWidget(save_button := QPushButton(STR_SAVE))
+        load_save_layout.addWidget(raw_button := QPushButton(STR_LAW_DATA_SAVE_PATH))
         load_save_layout.addWidget(status_button := QPushButton(STR_STATUS))
 
         main_layout.addLayout(steps_layout := QVBoxLayout())
@@ -68,6 +69,7 @@ class TWSResultView(QWidget):
 
         self.load_button = load_button
         self.save_button = save_button
+        self.raw_button = raw_button
         self.status_button = status_button
         self.steps = steps
         self.step_pages = step_pages
@@ -76,17 +78,20 @@ class TWSResultView(QWidget):
 
         self.connect_event()
 
-        localtime = time.localtime()
-        self.filename = f"./{localtime.tm_year}{localtime.tm_mon:02d}{localtime.tm_mday:02d}.csv"
-
         self.result_num = 0
-        if os.path.exists(self.filename):
+        if os.path.exists(self.get_file_name()):
             self.result_num = int(get_config_value(STR_FILES, STR_RESULT_NUM))
 
         change_color_selected_button(self.steps.values(), self.steps[STR_CONN_OS])
 
         if file := get_config_value(STR_FILES, STR_RESULT_FILE):
             self.load_file(file)
+
+    def get_file_name(self):
+        localtime = time.localtime()
+        if path := get_config_value(STR_FILES, STR_RAW_PATH):
+            return f"{path}/{localtime.tm_year}{localtime.tm_mon:02d}{localtime.tm_mday:02d}.csv"
+        return f"./{localtime.tm_year}{localtime.tm_mon:02d}{localtime.tm_mday:02d}.csv"
 
     def showEvent(self, e):
         visible_button_numbering(self.steps.values())
@@ -251,6 +256,7 @@ class TWSResultView(QWidget):
         # button
         self.load_button.clicked.connect(self.button_clicked)
         self.save_button.clicked.connect(self.button_clicked)
+        self.raw_button.clicked.connect(self.button_clicked)
         self.status_button.clicked.connect(self.button_clicked)
 
         # event connect
@@ -272,6 +278,9 @@ class TWSResultView(QWidget):
         if button_name == STR_SAVE:
             if fname := QFileDialog.getSaveFileName(self, 'Save file', './', 'Data Files(*.dat)')[0]:
                 self.save_file(fname)
+        if button_name == STR_LAW_DATA_SAVE_PATH:
+            if fname := QFileDialog.getExistingDirectory(self, 'Select Folder', get_config_value(STR_FILES, STR_RAW_PATH)):
+                set_config_value(STR_FILES, STR_RAW_PATH, fname)
         if button_name == STR_STATUS:
             if self.status_widget.isMinimized():
                 self.status_widget.showNormal()
@@ -399,14 +408,14 @@ class TWSResultView(QWidget):
             max_values,
             values
     ):
-        if os.path.exists(self.filename):
-            with open(self.filename, 'a', newline="") as f:
+        if os.path.exists(self.get_file_name()):
+            with open(self.get_file_name(), 'a', newline="") as f:
                 wr = csv.writer(f)
-                if len(step_list) != len(self.step_pages):
-                    self.csv_write_row(wr, descriptions, min_values, max_values)
+                # if len(step_list) != len(self.step_pages):
+                #     self.csv_write_row(wr, descriptions, min_values, max_values)
                 wr.writerow(values)
         else:
-            with open(self.filename, 'w', newline="") as f:
+            with open(self.get_file_name(), 'w', newline="") as f:
                 wr = csv.writer(f)
                 self.csv_write_row(wr, descriptions, min_values, max_values)
                 wr.writerow(values)

@@ -47,6 +47,7 @@ class Config:
         config[STR_FILES][STR_CONFIG_FILE] = ''
         config[STR_FILES][STR_RESULT_FILE] = ''
         config[STR_FILES][STR_RESULT_NUM] = '0'
+        config[STR_FILES][STR_RAW_PATH] = ''
         config.add_section(STR_COUNT)
         config[STR_COUNT][STR_COUNT_TOTAL] = '0'
         config[STR_COUNT][STR_COUNT_OK] = '0'
