@@ -305,9 +305,10 @@ class TWSConfigView(QWidget):
             widget.setHorizontalHeaderLabels([STR_J1_PIN, STR_J2_PIN, STR_POGO_PIN, STR_GND_PIN])
             self.add_combobox_pin_num(0, 4, widget)
         if step == STR_LED:
-            self.set_table_column_row_count(widget, 2, 1)
+            self.set_table_column_row_count(widget, 2, 2)
             widget.setHorizontalHeaderLabels([STR_LED_PIN, STR_GND_PIN])
-            self.add_combobox_pin_num(0, 2, widget)
+            for index in range(2):
+                self.add_combobox_pin_num(index, 2, widget)
         if step == STR_HALL_SENSOR:
             self.set_table_column_row_count(widget, 4, 1)
             widget.setHorizontalHeaderLabels([STR_18V_PIN, STR_I2C_SCL_PIN, STR_I2C_SDA_PIN, STR_GND_PIN])

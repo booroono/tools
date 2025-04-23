@@ -215,7 +215,7 @@ class TWSSerial(QObject):
         if step_no == RESULT_POGO_OPEN_SHORT:
             return struct.unpack('>BH3B', data)
         if step_no == RESULT_LED:
-            return struct.unpack('>BH4HB', data)
+            return struct.unpack('>BH6HB', data)
         if step_no == RESULT_HALL_SENSOR:
             return struct.unpack('>BHH6BhBhBh3B', data)
         if step_no in [RESULT_VBAT_ID, RESULT_BATTERY]:

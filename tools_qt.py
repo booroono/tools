@@ -274,8 +274,8 @@ class TWSCheckerView(QWidget):
         else:
             step = STEP_SEQUENCES.index(self.step_name) + 1
             send_data = [CMD_TEST_START, self.config.get_right_check(), step]
-            if step > 5:
-                self.step_sequences[STR_CTEST].background_color = COLOR_GREEN
+            # if step > 5:
+            #     self.step_sequences[STR_CTEST].background_color = COLOR_GREEN
         self.serial.serial_write_data_signal.emit(send_data)
         # self.step_on_view()
 

@@ -7,6 +7,7 @@ from PySide2.QtGui import QColor
 from PySide2.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTableWidget, QFileDialog, QHeaderView, \
     QTableWidgetItem, QGroupBox, QGridLayout, QLabel
 
+from _except import remove_proxi_offset, remove_proxi_offset_result
 from component.components import Button, change_color_selected_button, modify_sequence_visible, visible_button_numbering
 from ini.Config import set_config_value, get_config_value
 from logger import logger
@@ -98,7 +99,9 @@ class TWSResultView(QWidget):
 
     @Slot(list)
     def process_result(self, values):
+        values = remove_proxi_offset_result(values)
         step, *datas = values
+
         table = self.get_table_widget_from_step_num(step - 1)
         float_datas = self.preprocess_result_data(step - 1, datas)
         # self.visible_table(table)
@@ -145,7 +148,7 @@ class TWSResultView(QWidget):
         return_datas = list(map(float, datas))
         step_name = STEP_SEQUENCES[step]
         if step_name == STR_LED:
-            for index in range(4):
+            for index in range(6):
                 return_datas[index] /= 1000
         if step_name == STR_HALL_SENSOR:
             return_datas[0] /= 1000
@@ -170,7 +173,10 @@ class TWSResultView(QWidget):
             if index == len(step_start_nums) - 1:
                 steps.append(lines[step_num + 1:])
                 continue
-            steps.append(lines[step_num + 1:step_start_nums[index + 1]])
+            add_list = lines[step_num + 1:step_start_nums[index + 1]]
+            if index == STEP_SEQUENCES_INDEX_STR_PROX:
+                add_list = remove_proxi_offset(add_list)
+            steps.append(add_list)
 
         for step_num, step in enumerate(steps):
             self.fill_table_widget_from_load_file(step_num, step)

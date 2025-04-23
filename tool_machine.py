@@ -73,7 +73,7 @@ class TWSToolSerial(QObject):
             line_data = [float(line.split('\t')[1]) for line in lines[step_num + 1:step_start_num[index + 1]]]
             if index == STEP_SEQUENCES.index(STR_LED):
                 print(line_data)
-                for row in range(4):
+                for row in range(6):
                     line_data[row] *= 1000
             if index == STEP_SEQUENCES.index(STR_HALL_SENSOR):
                 line_data[0] *= 1000
@@ -162,6 +162,14 @@ class TWSToolSerial(QObject):
         cmd = self.buff[2]
         step_no = self.buff[6]
 
+        if cmd == CMD_CONFIG_SET:
+            write_data = struct.pack('>3B', SOT, MCU, CMD_CONFIG_SET)
+            write_data += struct.pack('>H', 1)
+            write_data += b'\x01'
+            write_data += struct.pack('B', self.make_checksum(write_data)) + EOT
+            print("write", write_data)
+            self.in_write.emit(write_data)
+            return
         if cmd != CMD_TEST_START:
             return
 
@@ -173,8 +181,8 @@ class TWSToolSerial(QObject):
             data_len = len(self.min_data[step_no - 1])
             data_struct = f'>{data_len}B'
         if step_no == RESULT_LED:
-            data_len = 9
-            data_struct = '>4HB'
+            data_len = 13
+            data_struct = '>6HB'
         if step_no == RESULT_HALL_SENSOR:
             data_len = 19
             data_struct = '>H6BhBhBh3B'
