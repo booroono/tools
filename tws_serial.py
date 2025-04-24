@@ -223,8 +223,8 @@ class TWSSerial(QObject):
                 # B: step_no, H: step_length, 
                 # 6H: LED1 ON, LED1 OFF, LED2 ON, LED2 OFF, Forward Voltage, Power Down Current
                 # 마지막 부분 포함 형태로 수정
-                if len(data) >= 15:  # B + H + 6H = 1 + 2 + 12 = 15 바이트 이상
-                    result = struct.unpack('>BH6H1B', data[:16])  # 16바이트만 파싱
+                if len(data) >= 19:  # B + H + 4H + 1B + 3H + 1B= 1 + 2 + 12 = 15 바이트 이상
+                    result = struct.unpack('>BH4H1B3H1B', data[:19])  # 16바이트만 파싱
                     logger.debug(f"LED 테스트 데이터 파싱 완료: {result}")
                     return result
                 else:

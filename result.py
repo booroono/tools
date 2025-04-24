@@ -148,8 +148,9 @@ class TWSResultView(QWidget):
         return_datas = list(map(float, datas))
         step_name = STEP_SEQUENCES[step]
         if step_name == STR_LED:
-            for index in range(6):
-                return_datas[index] /= 1000
+            for index in range(9):
+                if index is not 4 and index is not 8:
+                    return_datas[index] /= 1000
         if step_name == STR_HALL_SENSOR:
             return_datas[0] /= 1000
             return_datas[1] /= 10

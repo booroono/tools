@@ -73,8 +73,9 @@ class TWSToolSerial(QObject):
             line_data = [float(line.split('\t')[1]) for line in lines[step_num + 1:step_start_num[index + 1]]]
             if index == STEP_SEQUENCES.index(STR_LED):
                 print(line_data)
-                for row in range(6):
-                    line_data[row] *= 1000
+                for row in range(9):
+                    if row is not 4 and row is not 8:
+                        line_data[row] *= 1000
             if index == STEP_SEQUENCES.index(STR_HALL_SENSOR):
                 line_data[0] *= 1000
                 line_data[1] *= 10
