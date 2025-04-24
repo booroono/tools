@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import sys
 import time
 import traceback
@@ -231,16 +232,46 @@ class TWSCheckerView(QWidget):
         self.result_view.clean_result_signal.emit()
 
     def cmd_result_data(self, data):
-        step, step_size, *result = data
         try:
+            step, step_size, *result = data
+            logger.debug(f"cmd_result_data: step={step}, step_size={step_size}, result={result}")
+            
+            # LED �׽�Ʈ Ư�� ó�� (step 3�� LED �׽�Ʈ)
+            if step == RESULT_LED:
+                logger.debug(f"LED �׽�Ʈ ��� ó��: {result}")
+                # LED �׽�Ʈ ��� ���� ��� 0�̸� ��� �α� �߰�
+                if all(val == 0 for val in result):
+                    logger.warning("LED �׽�Ʈ ����� ��� 0�Դϴ�. �ϵ���� ���� �Ǵ� ������ Ȯ���ϼ���.")
+                    self.console_log.append("���: LED �׽�Ʈ ����� ��ȿ���� �ʽ��ϴ�.")
+            
+            if not self.step_list:
+                logger.error("step_list�� ��� �ֽ��ϴ�. ���� �ܰ�� �����մϴ�.")
+                self.step_name = ''
+                self.console_log.append("�׽�Ʈ ���� ����. ���� �ܰ�� �����մϴ�.")
+                self.send_step_packet()
+                return
+                
             ordered_step = self.step_list.pop(0)[2:]
+            logger.debug(f"ordered_step: {ordered_step}, current_step_index: {STEP_SEQUENCES.index(ordered_step) + 1}")
+            
             if step == STEP_SEQUENCES.index(ordered_step) + 1:
                 to_config_data = [step] + list(result)
                 self.result_view.result_received_signal.emit(to_config_data)
             else:
-                raise IndexError
+                logger.error(f"step ����ġ: ���={STEP_SEQUENCES.index(ordered_step) + 1}, ����={step}")
+                raise IndexError(f"Step mismatch: expected {STEP_SEQUENCES.index(ordered_step) + 1}, got {step}")
         except IndexError as e:
-            QMessageBox.critical(self, TEXT_CRITICAL_MESSAGE, "Result is not expected!!!")
+            logger.error(f"cmd_result_data ����: {e}")
+            QMessageBox.critical(self, TEXT_CRITICAL_MESSAGE, f"Result is not expected!!! Error: {e}")
+            # ���� �׽�Ʈ�� �Ѿ �� �ֵ��� ��ġ
+            self.check_result = STR_FAIL
+            self.send_step_packet()
+        except Exception as e:
+            logger.error(f"cmd_result_data ���� �߻�: {e}")
+            QMessageBox.critical(self, TEXT_CRITICAL_MESSAGE, f"Unexpected error: {e}")
+            # ���� �׽�Ʈ�� �Ѿ �� �ֵ��� ��ġ
+            self.check_result = STR_FAIL
+            self.send_step_packet()
 
     def cmd_version(self):
         self.version_timer.stop()
@@ -257,27 +288,39 @@ class TWSCheckerView(QWidget):
     def send_step_packet(self):
         try:
             self.step_name = self.step_list[0][2:]
+            logger.debug(f"���� �׽�Ʈ �ܰ�: {self.step_name}")
             self.step_sequences[self.step_name].background_color = COLOR_SKY_LIGHT_BLUE
             self.console_log.append(f"{self.step_name} START\n")
+            
+            step = STEP_SEQUENCES.index(self.step_name) + 1
+            send_data = [CMD_TEST_START, self.config.get_right_check(), step]
+            logger.debug(f"�׽�Ʈ ���� ��Ŷ ����: {send_data}")
+            
         except IndexError as e:
+            logger.debug(f"�׽�Ʈ �Ϸ� �Ǵ� step_list ��� ����: {e}")
             self.step_name = len(STEP_SEQUENCES)
             self.console_log.append(TEXT_TEST_DONE)
             self.console_log.append(f"TEST TIME : {time.time() - self.start_time: .2f}")
             self.check_result = self.result_view.get_pass_fail()
+            
             if self.check_result == STR_PASS:
                 send_data = [CMD_TEST_END, TEST_STOP]
+                logger.debug("�׽�Ʈ ���, ���� ���� ��ȣ ����")
             else:
                 send_data = [CMD_TEST_END, TEST_FAIL]
+                logger.debug("�׽�Ʈ ����, ���� ���� ��ȣ ����")
 
             self.result_view.make_result_file_signal.emit(STEP_SEQUENCES)
             self.result_view.count_signal.emit(self.config.get_config_checked_list())
-        else:
-            step = STEP_SEQUENCES.index(self.step_name) + 1
-            send_data = [CMD_TEST_START, self.config.get_right_check(), step]
-            # if step > 5:
-            #     self.step_sequences[STR_CTEST].background_color = COLOR_GREEN
+        
+        except Exception as e:
+            logger.error(f"send_step_packet ���� �߻�: {e}")
+            # ����ġ ���� ���� �߻� ��, �׽�Ʈ �ߴ�
+            send_data = [CMD_TEST_END, TEST_FAIL]
+            self.console_log.append(f"����ġ ���� ���� �߻�: {e}")
+            self.check_result = STR_FAIL
+            
         self.serial.serial_write_data_signal.emit(send_data)
-        # self.step_on_view()
 
     def zig_down_reset(self):
         self.check_result = ''
